@@ -3,12 +3,12 @@ uri: ""
 # List of MongoDB server addresses
 # External MongoDB service configuration
 address: [localhost:37017]
-# Name of the database
-database: server_v3
+# Name of the database (must be chat_v3, not the IM server_v3 database)
+database: chat_v3
 # Username for database authentication
 username: server
 # Password for database authentication
-password: Matkurban520%
+password: Matkurban520
 # Authentication source for database authentication, if use root user, set it to admin
 authSource: chat_v3
 # Maximum number of connections in the connection pool
