@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: chat-rpc-admin
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: chat-rpc-admin
+  template:
+    metadata:
+      labels:
+        app: chat-rpc-admin
+    spec:
+      containers:
+        - name: chat-rpc-admin-container
+          image: chat-rpc-admin:latest
+          env:
+            - name: CONFIG_PATH
+              value: "/config"
+            - name: CHATENV_REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: chat-redis-secret
+                  key: redis-password
+            - name: CHATENV_MONGODB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: chat-mongo-secret
+                  key: mongo_chat_username
+            - name: CHATENV_MONGODB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: chat-mongo-secret
+                  key: mongo_chat_password
+
+          volumeMounts:
+            - name: chat-config
+              mountPath: "/config"
+              readOnly: true
+          ports:
+            - containerPort: 30200
+      volumes:
+        - name: chat-config
+          configMap:
+            name: chat-config

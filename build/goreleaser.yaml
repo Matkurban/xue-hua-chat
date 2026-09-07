@@ -1,0 +1,52 @@
+version: 2
+project_name: chat
+dist: ./_output/dist
+
+builds:
+  - &service
+    id: chat-api-chat
+    binary: chat-api-chat
+    main: ./cmd/api/chat-api-chat
+    env: [CGO_ENABLED=0]
+    goos: [darwin, windows, linux]
+    goarch: [amd64, arm64]
+    flags: [-trimpath]
+    ldflags: [-s -w]
+  - <<: *service
+    id: chat-api-admin
+    binary: chat-api-admin
+    main: ./cmd/api/chat-api-admin
+  - <<: *service
+    id: chat-api-bot
+    binary: chat-api-bot
+    main: ./cmd/api/chat-api-bot
+  - <<: *service
+    id: chat-rpc-chat
+    binary: chat-rpc-chat
+    main: ./cmd/rpc/chat-rpc-chat
+  - <<: *service
+    id: chat-rpc-admin
+    binary: chat-rpc-admin
+    main: ./cmd/rpc/chat-rpc-admin
+  - <<: *service
+    id: chat-rpc-bot
+    binary: chat-rpc-bot
+    main: ./cmd/rpc/chat-rpc-bot
+
+archives:
+  - formats: [tar.gz]
+    name_template: "chat-{{ .Os }}-{{ .Arch }}"
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    files:
+      - config/**
+      - LICENSE
+      - README_zh_CN.md
+
+checksum:
+  name_template: chat-checksums.txt
+  algorithm: sha256
+
+release:
+  disable: true

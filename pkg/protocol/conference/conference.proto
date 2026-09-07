@@ -1,0 +1,72 @@
+syntax = "proto3";
+package chat.conference;
+option go_package = "chat/pkg/protocol/conference";
+
+message ConferenceSync {
+  string room_id = 1;
+  int64 rev = 2;
+  string admin_user_id = 3;
+  int32 participant_count = 4;
+  bool global_audio_muted = 5;
+  bool global_video_off = 6;
+  bool chat_muted = 7;
+  bool locked = 8;
+  string pinned_user_id = 9;
+  string egress_id = 10;
+  string ingress_id = 11;
+  string event = 12; // ended | kicked | removed | sync | admin_transferred | cohost_set | cohost_unset
+  string target_user_id = 13;
+  bool target_audio_forced_off = 14; // meaningful when target_user_id set (media)
+  bool target_video_forced_off = 15;
+  int32 status = 16; // announce_updated: 1 ongoing, 2 ended
+  int64 ended_at = 17;
+  string announce_refs_json = 18; // JSON array of {conversationID,clientMsgID,serverMsgID}
+  // stage_state_json: {pendingApplyUserIDs,cameraOnUserIDs,cameraOnCount,autoStageLimit,onStageCount,...}
+  string stage_state_json = 19;
+  bool target_chat_forced_off = 20; // personal text mute when target_user_id set
+  // chat_revoke: target_user_id = original sender; revoke_target_seq = message seq
+  uint64 revoke_target_seq = 21;
+}
+
+message ConferenceRoomEnvelope {
+  uint64 seq = 1;
+  int64 sent_at_ms = 2;
+  string sender_id = 3;
+  string sender_name = 4;
+  oneof body {
+    SystemJoin join = 11;
+    SystemLeave leave = 12;
+    TextChat text = 13;
+    TextRevoke revoke = 14;
+    ImageChat image = 15;
+  }
+  // 16 was the removed Web3 red packet event; do not reuse.
+  reserved 16;
+}
+
+message TextRevoke {
+  uint64 target_seq = 1;
+  string target_sender_id = 2;
+}
+
+message SystemJoin {
+  string user_id = 1;
+  string display_name = 2;
+  string face_url = 3; // joiner avatar; peers may lack it in local IM cache
+}
+
+message SystemLeave {
+  string user_id = 1;
+  string display_name = 2;
+  string reason = 3;
+}
+
+message TextChat {
+  string text = 1;
+}
+
+message ImageChat {
+  string url = 1;
+  int32 width = 2;
+  int32 height = 3;
+}

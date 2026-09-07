@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: chat-api-chat
+spec:
+  selector:
+    app: chat-api-chat
+  ports:
+    - name: http-10008
+      protocol: TCP
+      port: 10008
+      targetPort: 10008
+  type: NodePort

@@ -1,0 +1,9 @@
+api:
+  # Listening IP; 0.0.0.0 means both internal and external IPs are listened to, default is recommended
+  listenIP: 0.0.0.0
+  # Listening ports; if multiple are configured, multiple instances will be launched
+  ports: [ 10008 ]
+
+# Conference stage limits (snapshotted per room at create)
+conference:
+  autoStageLimit: 9   # hard max on-stage seats (auto-join + approve)

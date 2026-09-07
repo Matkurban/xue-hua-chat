@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>{{.AppName}} 验证码</title>
+</head>
+
+<body
+    style="margin:0;padding:0;background:#f1f4f9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Hiragino Sans GB','Microsoft YaHei',Arial,sans-serif;color:#1f2937;-webkit-font-smoothing:antialiased;">
+
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"
+        style="background:#f1f4f9;padding:40px 16px;">
+        <tr>
+            <td align="center">
+                <table role="presentation" width="600" cellspacing="0" cellpadding="0" border="0"
+                    style="max-width:600px;width:100%;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 10px 30px rgba(15,23,42,0.08);">
+
+                    <!-- Header -->
+                    <tr>
+                        <td
+                            style="background:linear-gradient(135deg,#6366f1 0%,#8b5cf6 50%,#ec4899 100%);padding:40px 40px 36px 40px;text-align:left;">
+                            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                                <tr>
+                                    <td style="vertical-align:middle;">
+                                        <div
+                                            style="display:inline-block;width:44px;height:44px;line-height:44px;text-align:center;background:rgba(255,255,255,0.2);border-radius:12px;color:#ffffff;font-size:22px;font-weight:700;backdrop-filter:blur(8px);">
+                                            ✦</div>
+                                    </td>
+                                    <td style="vertical-align:middle;padding-left:14px;">
+                                        <div style="color:#ffffff;font-size:20px;font-weight:600;letter-spacing:0.5px;">
+                                            {{.AppName}}</div>
+                                        <div style="color:rgba(255,255,255,0.85);font-size:13px;margin-top:2px;">安全身份验证
+                                        </div>
+                                    </td>
+                                </tr>
+                            </table>
+                            <h1
+                                style="margin:24px 0 8px 0;color:#ffffff;font-size:26px;font-weight:700;line-height:1.3;">
+                                您的验证码已生成</h1>
+                            <p style="margin:0;color:rgba(255,255,255,0.9);font-size:14px;line-height:1.6;">请在
+                                {{.ExpireMinutes}} 分钟内完成验证，逾期需重新获取</p>
+                        </td>
+                    </tr>
+
+                    <!-- Body -->
+                    <tr>
+                        <td style="padding:36px 40px 8px 40px;">
+                            <p style="margin:0 0 8px 0;font-size:15px;color:#1f2937;line-height:1.7;">您好，</p>
+                            <p style="margin:0 0 24px 0;font-size:14px;color:#4b5563;line-height:1.7;">
+                                我们收到了一个使用此邮箱的{{.Scene}}请求。请使用下方验证码完成本次操作，<strong
+                                    style="color:#1f2937;">切勿将验证码透露给任何人</strong>。
+                            </p>
+
+                            <!-- Verification code box -->
+                            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                                <tr>
+                                    <td align="center" style="padding:8px 0 4px 0;">
+                                        <div
+                                            style="display:inline-block;background:linear-gradient(135deg,#eef2ff 0%,#fdf2f8 100%);border:1px dashed #c7d2fe;border-radius:14px;padding:22px 28px;">
+                                            <div
+                                                style="font-size:12px;color:#6b7280;letter-spacing:2px;margin-bottom:10px;text-transform:uppercase;">
+                                                VERIFICATION CODE</div>
+                                            <div
+                                                style="font-size:38px;font-weight:700;letter-spacing:14px;color:#4f46e5;font-family:'SF Mono','Menlo','Consolas',monospace;line-height:1;">
+                                                {{.Code}}</div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <!-- Tips -->
+                            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"
+                                style="margin-top:32px;background:#f9fafb;border-radius:12px;border-left:3px solid #6366f1;">
+                                <tr>
+                                    <td style="padding:16px 20px;">
+                                        <div style="font-size:13px;font-weight:600;color:#374151;margin-bottom:8px;">
+                                            温馨提示</div>
+                                        <ul
+                                            style="margin:0;padding-left:18px;color:#6b7280;font-size:13px;line-height:1.9;">
+                                            <li>验证码有效时间为 <strong style="color:#4f46e5;">{{.ExpireMinutes}}
+                                                    分钟</strong>，请尽快使用</li>
+                                            <li>为了您的账户安全，请勿将验证码告诉他人</li>
+                                            <li>如非本人操作，请忽略此邮件，您的账户依然安全</li>
+                                        </ul>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <p style="margin:28px 0 0 0;font-size:13px;color:#9ca3af;line-height:1.7;">
+                                此邮件由系统自动发送，请勿直接回复。如有任何疑问，请联系我们的客服团队。
+                            </p>
+                        </td>
+                    </tr>
+
+                    <!-- Divider -->
+                    <tr>
+                        <td style="padding:24px 40px 0 40px;">
+                            <div
+                                style="height:1px;background:linear-gradient(to right,transparent,#e5e7eb,transparent);">
+                            </div>
+                        </td>
+                    </tr>
+
+                    <!-- Footer -->
+                    <tr>
+                        <td style="padding:20px 40px 32px 40px;text-align:center;">
+                            <div style="font-size:13px;color:#6b7280;font-weight:600;margin-bottom:6px;">{{.AppName}}
+                                Team</div>
+                            <div style="font-size:12px;color:#9ca3af;line-height:1.6;">
+                                © {{.Year}} {{.AppName}}. All rights reserved.<br>
+                                本邮件由系统自动发出，请勿回复
+                            </div>
+                        </td>
+                    </tr>
+                </table>
+
+                <div
+                    style="max-width:600px;margin:16px auto 0 auto;text-align:center;font-size:11px;color:#9ca3af;line-height:1.6;">
+                    如果按钮或链接无法点击，您可以直接复制上方验证码进行验证
+                </div>
+            </td>
+        </tr>
+    </table>
+
+</body>
+
+</html>

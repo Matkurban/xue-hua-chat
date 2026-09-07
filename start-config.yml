@@ -1,0 +1,11 @@
+serviceBinaries:
+  chat-api-chat: 1
+  chat-rpc-chat: 1
+  chat-api-admin: 1
+  chat-rpc-admin: 1
+  chat-api-bot: 1
+  chat-rpc-bot: 1
+toolBinaries:
+  - check-component
+  - attribute-to-credential
+maxFileDescriptors: 10000
