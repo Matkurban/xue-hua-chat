@@ -26,7 +26,7 @@ func (o *ConferenceAdminApi) mgrOrErr(c *gin.Context) bool {
 	return true
 }
 
-// AdminListActiveConferences POST /admin/conference/list_active
+// AdminListActiveConferences POST /conference/list_all
 func (o *ConferenceAdminApi) AdminListActiveConferences(c *gin.Context) {
 	if _, err := mctx.CheckAdmin(c); err != nil {
 		apiresp.GinError(c, err)
@@ -72,7 +72,7 @@ func (o *ConferenceAdminApi) AdminListActiveConferences(c *gin.Context) {
 	})
 }
 
-// AdminAdjustConferenceDisplayCount POST /admin/conference/adjust_display_count
+// AdminAdjustConferenceDisplayCount POST /conference/adjust_display_count
 func (o *ConferenceAdminApi) AdminAdjustConferenceDisplayCount(c *gin.Context) {
 	if _, err := mctx.CheckAdmin(c); err != nil {
 		apiresp.GinError(c, err)
@@ -106,7 +106,7 @@ func (o *ConferenceAdminApi) AdminAdjustConferenceDisplayCount(c *gin.Context) {
 	})
 }
 
-// AdminForceEndConference POST /admin/conference/force_end
+// AdminForceEndConference POST /conference/force_end
 func (o *ConferenceAdminApi) AdminForceEndConference(c *gin.Context) {
 	if _, err := mctx.CheckAdmin(c); err != nil {
 		apiresp.GinError(c, err)

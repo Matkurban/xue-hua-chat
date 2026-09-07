@@ -414,14 +414,14 @@ func SetChatRoute(router gin.IRouter, chat *Api, mw *chatmw.MW) {
 	adminRedPacket.POST("/list", chat.RedPacket.AdminListRedPackets)
 	adminRedPacket.POST("/grabs", chat.RedPacket.AdminListGrabs)
 
-	// 会议管理（管理员端：活跃列表 + 虚增显示人数 + 强制结束）——走 chat-api 的 ConferenceManager，
-	// 与进/退会共用同一条 conference_sync 推送路径。
+	// 会议管理（管理员端：全部进行中列表 + 调整显示人数 + 强制结束）——走 chat-api 的 ConferenceManager，
+	// 与进/退会共用同一条 conference_sync 推送路径。路径按作用命名，避开网关 /admin/ 前缀。
 	if chat.ConferenceManager != nil {
 		conferenceAdmin := NewConferenceAdminApi(chat.ConferenceManager)
-		adminConference := router.Group("/admin/conference", mw.CheckAdmin)
-		adminConference.POST("/list_active", conferenceAdmin.AdminListActiveConferences)
-		adminConference.POST("/adjust_display_count", conferenceAdmin.AdminAdjustConferenceDisplayCount)
-		adminConference.POST("/force_end", conferenceAdmin.AdminForceEndConference)
+		conferenceOps := router.Group("/conference", mw.CheckAdmin)
+		conferenceOps.POST("/list_all", conferenceAdmin.AdminListActiveConferences)
+		conferenceOps.POST("/adjust_display_count", conferenceAdmin.AdminAdjustConferenceDisplayCount)
+		conferenceOps.POST("/force_end", conferenceAdmin.AdminForceEndConference)
 	}
 
 	// 举报（用户侧）
