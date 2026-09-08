@@ -1,6 +1,6 @@
 server:
   # IM server API address
-  apiURL: https://server.jsontodart.cn
+  apiURL: http://127.0.0.1:10002
   # IM server secret key, must be consistent with server/config/share.yml
   secret: Matkurban520
   # IM server administrator userID, must be consistent with server/config/share.yml
