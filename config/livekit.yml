@@ -1,6 +1,6 @@
 # LiveKit for meeting/call management. LiveKit is deployed by xue-hua-server/docker-compose.yml
 # (service "livekit"); key/secret must equal LIVEKIT_API_KEY / LIVEKIT_API_SECRET in xue-hua-server/.env.
-# Local: ws://127.0.0.1:7880   Production (caddy profile): wss://<LIVEKIT_DOMAIN>
-url: "wss://livekit.jsontodart.cn"
+# IP debug: ws://<public-ip>:7880   Domain (caddy profile): wss://<LIVEKIT_DOMAIN>
+url: "ws://103.231.57.21:7880"
 key: "API3ZsVxGX7h7Jr"
 secret: "ORMHbnN8cM2fldeJMuSolozDoroTayvJz84K1O8jnRx"
