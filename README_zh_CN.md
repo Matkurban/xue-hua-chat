@@ -33,7 +33,7 @@ mage start
 ## 长期运行
 
 ```shell
-nohup ./mage start >> _output/logs/server.log 2>&1 &
+nohup ./mage start >> _output/logs/chat.log 2>&1 &
 ```
 
 ## 检查
