@@ -38,14 +38,7 @@ var packLinuxAmd64Entries = []string{
 	linuxAmd64Tool("attribute-to-credential"),
 	"config",
 	"start-config.yml",
-	"magefile.go",
-	"magefile_unix.go",
-	"mage_pack.go",
-	"go.mod",
-	"go.sum",
 	"version",
-	"README_zh_CN.md",
-	"LICENSE",
 }
 
 // Pack zips linux/amd64 binaries and the files a single server needs.

@@ -1,6 +1,6 @@
 module chat
 
-go 1.26.4
+go 1.27.1
 
 require (
 	gitee.com/matkurban/openimsdk-tools v0.0.50-alpha.122-mongo-v2 // fork of github.com/openimsdk/tools, https://gitee.com/matkurban/openimsdk-tools
