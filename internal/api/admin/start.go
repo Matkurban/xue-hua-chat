@@ -289,6 +289,20 @@ func SetAdminRoute(router gin.IRouter, admin *Api, mw *chatmw.MW, cfg *Config, c
 		adminRedPacket.POST("/grabs", redPacket.AdminListGrabs)
 	}
 
+	{
+		// 朋友圈管理：透传到 xue-hua-server /moment/admin/*
+		momentAdmin := router.Group("/admin/moment/admin", mw.CheckAdmin)
+		momentAdmin.POST("/list", admin.MomentAdminList)
+		momentAdmin.POST("/detail", admin.MomentAdminDetail)
+		momentAdmin.POST("/delete", admin.MomentAdminDelete)
+		momentAdmin.POST("/comment_list", admin.MomentAdminCommentList)
+		momentAdmin.POST("/delete_comment", admin.MomentAdminDeleteComment)
+		momentAdmin.POST("/like_list", admin.MomentAdminLikeList)
+		momentAdmin.POST("/ban", admin.MomentAdminBan)
+		momentAdmin.POST("/restore", admin.MomentAdminRestore)
+		momentAdmin.POST("/stats", admin.MomentAdminStats)
+	}
+
 	if governance != nil {
 		// 静态证据文件服务
 		router.Static("/appeal/files", "./appeal_evidence")

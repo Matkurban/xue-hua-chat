@@ -57,6 +57,16 @@ type CallerInterface interface {
 	LikeMoment(ctx context.Context, req *LikeMomentReq) error
 	UnlikeMoment(ctx context.Context, req *UnlikeMomentReq) error
 
+	AdminListMoments(ctx context.Context, req *AdminListMomentsReq) (*AdminListMomentsResp, error)
+	AdminGetMoment(ctx context.Context, req *AdminMomentIDReq) (*AdminMomentDetailResp, error)
+	AdminDeleteMoments(ctx context.Context, req *AdminMomentIDsReq) (*AdminDeleteMomentsResp, error)
+	AdminListMomentComments(ctx context.Context, req *AdminListCommentsReq) (*AdminListCommentsResp, error)
+	AdminDeleteMomentComment(ctx context.Context, req *AdminDeleteCommentReq) error
+	AdminListMomentLikes(ctx context.Context, req *AdminListLikesReq) (*AdminListLikesResp, error)
+	AdminBanMoments(ctx context.Context, req *AdminMomentIDsReq) (*AdminSetStatusResp, error)
+	AdminRestoreMoments(ctx context.Context, req *AdminMomentIDsReq) (*AdminSetStatusResp, error)
+	AdminMomentStats(ctx context.Context) (*AdminMomentStatsResp, error)
+
 	CreateFriendTag(ctx context.Context, req *CreateFriendTagReq) (*CreateFriendTagResp, error)
 	RenameFriendTag(ctx context.Context, req *RenameFriendTagReq) error
 	DeleteFriendTag(ctx context.Context, req *DeleteFriendTagReq) error
@@ -466,4 +476,41 @@ func (c *Caller) AddNotificationAccount(ctx context.Context, req *user.AddNotifi
 func (c *Caller) UpdateNotificationAccount(ctx context.Context, req *user.UpdateNotificationAccountInfoReq) error {
 	_, err := updateNotificationAccount.Call(ctx, c.imApi, req)
 	return err
+}
+
+func (c *Caller) AdminListMoments(ctx context.Context, req *AdminListMomentsReq) (*AdminListMomentsResp, error) {
+	return adminListMoments.Call(ctx, c.imApi, req)
+}
+
+func (c *Caller) AdminGetMoment(ctx context.Context, req *AdminMomentIDReq) (*AdminMomentDetailResp, error) {
+	return adminGetMoment.Call(ctx, c.imApi, req)
+}
+
+func (c *Caller) AdminDeleteMoments(ctx context.Context, req *AdminMomentIDsReq) (*AdminDeleteMomentsResp, error) {
+	return adminDeleteMoments.Call(ctx, c.imApi, req)
+}
+
+func (c *Caller) AdminListMomentComments(ctx context.Context, req *AdminListCommentsReq) (*AdminListCommentsResp, error) {
+	return adminListComments.Call(ctx, c.imApi, req)
+}
+
+func (c *Caller) AdminDeleteMomentComment(ctx context.Context, req *AdminDeleteCommentReq) error {
+	_, err := adminDeleteComment.Call(ctx, c.imApi, req)
+	return err
+}
+
+func (c *Caller) AdminListMomentLikes(ctx context.Context, req *AdminListLikesReq) (*AdminListLikesResp, error) {
+	return adminListLikes.Call(ctx, c.imApi, req)
+}
+
+func (c *Caller) AdminBanMoments(ctx context.Context, req *AdminMomentIDsReq) (*AdminSetStatusResp, error) {
+	return adminBanMoments.Call(ctx, c.imApi, req)
+}
+
+func (c *Caller) AdminRestoreMoments(ctx context.Context, req *AdminMomentIDsReq) (*AdminSetStatusResp, error) {
+	return adminRestoreMoment.Call(ctx, c.imApi, req)
+}
+
+func (c *Caller) AdminMomentStats(ctx context.Context) (*AdminMomentStatsResp, error) {
+	return adminMomentStats.Call(ctx, c.imApi, &AdminMomentStatsReq{})
 }

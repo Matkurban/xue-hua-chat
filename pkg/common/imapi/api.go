@@ -46,6 +46,16 @@ var (
 	likeMoment    = NewApiCaller[LikeMomentReq, struct{}]("/moment/like")
 	unlikeMoment  = NewApiCaller[UnlikeMomentReq, struct{}]("/moment/unlike")
 
+	adminListMoments   = NewApiCaller[AdminListMomentsReq, AdminListMomentsResp]("/moment/admin/list")
+	adminGetMoment     = NewApiCaller[AdminMomentIDReq, AdminMomentDetailResp]("/moment/admin/detail")
+	adminDeleteMoments = NewApiCaller[AdminMomentIDsReq, AdminDeleteMomentsResp]("/moment/admin/delete")
+	adminListComments  = NewApiCaller[AdminListCommentsReq, AdminListCommentsResp]("/moment/admin/comment_list")
+	adminDeleteComment = NewApiCaller[AdminDeleteCommentReq, struct{}]("/moment/admin/delete_comment")
+	adminListLikes     = NewApiCaller[AdminListLikesReq, AdminListLikesResp]("/moment/admin/like_list")
+	adminBanMoments    = NewApiCaller[AdminMomentIDsReq, AdminSetStatusResp]("/moment/admin/ban")
+	adminRestoreMoment = NewApiCaller[AdminMomentIDsReq, AdminSetStatusResp]("/moment/admin/restore")
+	adminMomentStats   = NewApiCaller[AdminMomentStatsReq, AdminMomentStatsResp]("/moment/admin/stats")
+
 	createFriendTag        = NewApiCaller[CreateFriendTagReq, CreateFriendTagResp]("/friend_tag/create")
 	renameFriendTag        = NewApiCaller[RenameFriendTagReq, struct{}]("/friend_tag/rename")
 	deleteFriendTag        = NewApiCaller[DeleteFriendTagReq, struct{}]("/friend_tag/delete")

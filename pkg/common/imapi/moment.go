@@ -141,3 +141,79 @@ type UnlikeMomentReq struct {
 	MomentID    string `json:"momentID"`
 	OwnerUserID string `json:"ownerUserID"`
 }
+
+// ---- Admin moment management (xue-hua-server /moment/admin/*) ----
+
+// AdminMoment is a moment with its author info.
+type AdminMoment struct {
+	*Moment
+	UserInfo *MomentUserInfo `json:"userInfo,omitempty"`
+}
+
+type AdminListMomentsReq struct {
+	UserID    string `json:"userID"`
+	Keyword   string `json:"keyword"`
+	StartTime int64  `json:"startTime"`
+	EndTime   int64  `json:"endTime"`
+	Status    *int32 `json:"status"`
+	PageReq
+}
+
+type AdminListMomentsResp struct {
+	Total   int64          `json:"total"`
+	Moments []*AdminMoment `json:"moments"`
+}
+
+type AdminMomentIDReq struct {
+	MomentID string `json:"momentID"`
+}
+
+type AdminMomentDetailResp struct {
+	Moment *AdminMoment `json:"moment"`
+}
+
+type AdminMomentIDsReq struct {
+	MomentIDs []string `json:"momentIDs"`
+}
+
+type AdminDeleteMomentsResp struct {
+	DeletedCount int64 `json:"deletedCount"`
+}
+
+type AdminListCommentsReq struct {
+	MomentID string `json:"momentID"`
+	PageReq
+}
+
+type AdminListCommentsResp struct {
+	Total    int64                    `json:"total"`
+	Comments []*MomentCommentWithUser `json:"comments"`
+}
+
+type AdminDeleteCommentReq struct {
+	CommentID string `json:"commentID"`
+}
+
+type AdminListLikesReq struct {
+	MomentID string `json:"momentID"`
+	PageReq
+}
+
+type AdminListLikesResp struct {
+	Total int64                 `json:"total"`
+	Likes []*MomentLikeWithUser `json:"likes"`
+}
+
+type AdminSetStatusResp struct {
+	Affected int64 `json:"affected"`
+}
+
+type AdminMomentStatsReq struct{}
+
+type AdminMomentStatsResp struct {
+	TotalMoments  int64 `json:"totalMoments"`
+	TodayMoments  int64 `json:"todayMoments"`
+	BannedMoments int64 `json:"bannedMoments"`
+	TotalComments int64 `json:"totalComments"`
+	TotalLikes    int64 `json:"totalLikes"`
+}
