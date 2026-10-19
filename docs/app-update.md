@@ -25,6 +25,20 @@
 | amd64、x86_64、x86-64、x8664 | x64 |
 | i386、i686、ia32、386 | x86 |
 
+### 合法的 platform/arch 组合（`appversion.Validate`，所有写入路径都会检查）
+| platform | 允许的 arch |
+|---|---|
+| android | universal, arm64, armv7, x64, x86 |
+| windows | universal, x64, arm64, x86 |
+| macos | universal, arm64, x64 |
+| linux | universal, x64, arm64, armv7 |
+| ios | universal |
+
+- 先做别名归一化再检查组合；Android ABI 写法（arm64-v8a、armeabi-v7a、armeabi）只允许 android 使用。
+- 不合法返回 1001，`errDlt` 例如 `invalid platform/arch combination ios/arm64, allowed arches for ios: universal`。
+- add_version 直接拒绝；update_version 会对“已存记录 + 修改”整体校验，所以库里已有的非法组合记录不能再修改（返回 1001），只能删除后重新添加（迁移脚本会 WARN 列出）。upload_package 不带 platform/arch，不涉及。
+- latest_version（客户端）不报错：ios 一律按 universal；其它平台只做别名归一化，非法组合（如 macos+armv7）实际上只会匹配 universal 记录。与 elephant-chat 的 `LookupArch` 一致。
+
 其它值在 add/update 时返回 1001；客户端上报未知 arch 时只匹配 universal 记录。比较时库里未迁移的别名（如 `armeabi-v7a`）也按规范值匹配。
 （Elephant 那边服务端白名单 armeabi-v7a/amd64 与客户端上报 armv7/x64 不一致，这里没有照搬。）
 

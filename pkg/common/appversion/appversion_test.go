@@ -131,7 +131,11 @@ func TestValidate(t *testing.T) {
 	}{
 		{"valid", func(a *admindb.Application) {}, true},
 		{"empty url allowed", func(a *admindb.Application) { a.Url = "" }, true},
-		{"ios without url/sha", func(a *admindb.Application) { a.Platform, a.Url, a.Sha256, a.Size = "ios", "", "", 0 }, true},
+		{"ios without url/sha", func(a *admindb.Application) {
+			a.Platform, a.Arch, a.Url, a.Sha256, a.Size = "ios", "universal", "", "", 0
+		}, true},
+		{"ios+arm64 rejected", func(a *admindb.Application) { a.Platform = "ios" }, false},
+		{"macos+armv7 rejected", func(a *admindb.Application) { a.Platform, a.Arch = "macos", "armv7" }, false},
 		{"empty arch defaults to universal", func(a *admindb.Application) { a.Arch = "" }, true},
 		{"canonical armv7", func(a *admindb.Application) { a.Arch = "armv7" }, true},
 		{"alias armeabi-v7a accepted", func(a *admindb.Application) { a.Arch = "armeabi-v7a" }, true},
@@ -236,5 +240,75 @@ func TestCheckSkippedForceNotInherited(t *testing.T) {
 	got, _ = Check([]*admindb.Application{r6, r7}, "2.0.6", 0, "arm64")
 	if got.HasUpdate || got.Force || got.Latest.Version != "2.0.6" {
 		t.Fatalf("revoked must be excluded: %+v", got)
+	}
+}
+
+func TestPlatformArchMatrix(t *testing.T) {
+	legal := map[string][]string{
+		"android": {"universal", "arm64", "armv7", "x64", "x86"},
+		"windows": {"universal", "x64", "arm64", "x86"},
+		"macos":   {"universal", "arm64", "x64"},
+		"linux":   {"universal", "x64", "arm64", "armv7"},
+		"ios":     {"universal"},
+	}
+	all := CanonicalArches()
+	for p, ok := range legal {
+		okSet := map[string]bool{}
+		for _, a := range ok {
+			okSet[a] = true
+		}
+		for _, a := range all {
+			got, err := NormalizePlatformArch(p, a)
+			if okSet[a] != (err == nil) || (err == nil && got != a) {
+				t.Errorf("%s/%s: got %q err=%v, want legal=%v", p, a, got, err, okSet[a])
+			}
+			r := rel(a, "1.0.0", 0)
+			r.Platform = p
+			if err := Validate(r); okSet[a] != (err == nil) {
+				t.Errorf("Validate %s/%s: err=%v want legal=%v", p, a, err, okSet[a])
+			}
+		}
+		if len(PlatformArches(p)) != len(ok) {
+			t.Errorf("PlatformArches(%s)=%v", p, PlatformArches(p))
+		}
+	}
+	// aliases are normalized before the combo check
+	if got, err := NormalizePlatformArch("windows", "AMD64"); err != nil || got != "x64" {
+		t.Errorf("windows/AMD64: %q %v", got, err)
+	}
+	if got, err := NormalizePlatformArch("android", "armeabi-v7a"); err != nil || got != "armv7" {
+		t.Errorf("android/armeabi-v7a: %q %v", got, err)
+	}
+	// Android ABI spellings are android-only; empty arch is universal everywhere
+	if _, err := NormalizePlatformArch("linux", "armeabi-v7a"); err == nil {
+		t.Error("linux/armeabi-v7a must be rejected")
+	}
+	if got, err := NormalizePlatformArch("ios", ""); err != nil || got != "universal" {
+		t.Errorf("ios/empty: %q %v", got, err)
+	}
+	if _, err := NormalizePlatformArch("ios", "arm64"); err == nil || !strings.Contains(err.Error(), "allowed arches for ios: universal") {
+		t.Errorf("ios/arm64 error must be explicit: %v", err)
+	}
+}
+
+func TestLookupArch(t *testing.T) {
+	if LookupArch("ios", "arm64") != "universal" {
+		t.Error("ios client arch must be treated as universal")
+	}
+	if LookupArch("windows", "x86_64") != "x64" || LookupArch("android", "arm64-v8a") != "arm64" {
+		t.Error("aliases must be normalized on lookup")
+	}
+	// illegal combo from a client only matches universal records
+	rels := []*admindb.Application{rel("universal", "1.1.0", 0), rel("x64", "1.2.0", 0)}
+	for _, r := range rels {
+		r.Platform = "macos"
+	}
+	got, _ := Check(rels, "1.0.0", 0, LookupArch("macos", "armv7"))
+	if got.Latest == nil || got.Latest.Version != "1.1.0" {
+		t.Fatalf("macos+armv7 should only get universal: %+v", got)
+	}
+	got, _ = Check([]*admindb.Application{rel("universal", "1.1.0", 0)}, "1.0.0", 0, LookupArch("ios", "arm64"))
+	if !got.HasUpdate {
+		t.Fatal("ios+arm64 must get the universal record")
 	}
 }

@@ -46,12 +46,26 @@ if (typeof DROP !== "undefined" && DROP === true) {
     "all": "universal", "any": "universal", "noarch": "universal", "": "universal",
   };
   const canonical = { universal: 1, arm64: 1, armv7: 1, x64: 1, x86: 1 };
+  // legal platform/arch combinations (same table as pkg/common/appversion platformArches)
+  const platformArches = {
+    android: ["universal", "arm64", "armv7", "x64", "x86"],
+    windows: ["universal", "x64", "arm64", "x86"],
+    macos: ["universal", "arm64", "x64"],
+    linux: ["universal", "x64", "arm64", "armv7"],
+    ios: ["universal"],
+  };
+  let badCombo = 0;
   let archFixed = 0;
   c.find({}).forEach(function (d) {
     const cur = (d.arch === undefined || d.arch === null) ? "" : String(d.arch);
     let want = cur.trim().toLowerCase();
     if (archAliases.hasOwnProperty(want)) want = archAliases[want];
     if (!canonical[want]) { print("WARN unknown arch, fix or delete by hand: " + d._id + " arch=" + cur); return; }
+    if (!platformArches[d.platform] || platformArches[d.platform].indexOf(want) < 0) {
+      badCombo++;
+      print("WARN illegal platform/arch " + d.platform + "/" + want + " (allowed: " + (platformArches[d.platform] || []).join("|") +
+        "); not served for that arch, update_version will be rejected; delete and re-add: " + d._id);
+    }
     if (want === cur) return;
     const clash = c.findOne({ _id: { $ne: d._id }, platform: d.platform, arch: want, version: d.version, build: d.build });
     if (clash) {
@@ -61,7 +75,7 @@ if (typeof DROP !== "undefined" && DROP === true) {
     c.updateOne({ _id: d._id }, { $set: { arch: want } });
     archFixed++;
   });
-  print("arch normalized: " + archFixed);
+  print("arch normalized: " + archFixed + ", illegal platform/arch combinations: " + badCombo);
   // v1 "latest:false" rows are history only; the server now derives "latest" from (version, build).
   c.createIndex({ platform: 1, arch: 1, version: 1, build: 1 }, { unique: true, name: "uniq_release" });
   c.createIndex({ platform: 1, status: 1 }, { name: "platform_status" });

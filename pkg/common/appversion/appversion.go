@@ -56,6 +56,65 @@ func NormalizeArch(s string) string {
 	return s
 }
 
+// platformArches lists the canonical arches that are legal for each platform. Keep docs/app-update.md in sync.
+var platformArches = map[string][]string{
+	"android": {ArchUniversal, "arm64", "armv7", "x64", "x86"},
+	"windows": {ArchUniversal, "x64", "arm64", "x86"},
+	"macos":   {ArchUniversal, "arm64", "x64"},
+	"linux":   {ArchUniversal, "x64", "arm64", "armv7"},
+	"ios":     {ArchUniversal},
+}
+
+// androidOnlyAliases are Android ABI spellings, accepted on write only for android.
+var androidOnlyAliases = map[string]bool{"arm64-v8a": true, "armeabi-v7a": true, "armeabi": true}
+
+// PlatformArches returns the canonical arches legal for platform (nil for an unknown platform).
+func PlatformArches(platform string) []string {
+	return append([]string(nil), platformArches[platform]...)
+}
+
+// PlatformArchAllowed reports whether the canonical arch is legal for platform.
+func PlatformArchAllowed(platform, canonicalArch string) bool {
+	for _, a := range platformArches[platform] {
+		if a == canonicalArch {
+			return true
+		}
+	}
+	return false
+}
+
+// NormalizePlatformArch is the strict write-side check (add_version / update_version): the arch is
+// normalized (aliases, case), Android ABI names are only accepted for android, and the result must be
+// legal for the platform.
+func NormalizePlatformArch(platform, arch string) (string, error) {
+	allowed := strings.Join(platformArches[platform], "|")
+	raw := strings.ToLower(strings.TrimSpace(arch))
+	if androidOnlyAliases[raw] && platform != "android" {
+		return "", fmt.Errorf("invalid arch %q for platform %s: Android ABI names are android-only; allowed arches for %s: %s",
+			arch, platform, platform, allowed)
+	}
+	c := NormalizeArch(arch)
+	if !arches[c] {
+		return "", fmt.Errorf("invalid arch %q, want one of %s (aliases such as armeabi-v7a/amd64/x86_64/aarch64/i686 are normalized)",
+			arch, strings.Join(CanonicalArches(), "|"))
+	}
+	if !PlatformArchAllowed(platform, c) {
+		return "", fmt.Errorf("invalid platform/arch combination %s/%s, allowed arches for %s: %s", platform, c, platform, allowed)
+	}
+	return c, nil
+}
+
+// LookupArch is the tolerant read-side normalization for latest_version, never an error:
+// ios always maps to universal; otherwise aliases are normalized, and an arch that is unknown or not
+// legal for the platform (e.g. macos+armv7) is passed on unchanged, so in practice it only matches
+// universal records (no stored record can carry an illegal combination).
+func LookupArch(platform, arch string) string {
+	if platform == "ios" {
+		return ArchUniversal
+	}
+	return NormalizeArch(arch)
+}
+
 // CanonicalArches lists the accepted arch values (for docs / error messages).
 func CanonicalArches() []string { return []string{ArchUniversal, "arm64", "armv7", "x64", "x86"} }
 
@@ -113,11 +172,11 @@ func Validate(a *admindb.Application) error {
 	if !platforms[a.Platform] {
 		return fmt.Errorf("invalid platform %q", a.Platform)
 	}
-	a.Arch = NormalizeArch(a.Arch)
-	if !arches[a.Arch] {
-		return fmt.Errorf("invalid arch %q, want one of %s (aliases such as armeabi-v7a/amd64/x86_64/aarch64/i686 are normalized)",
-			a.Arch, strings.Join(CanonicalArches(), "|"))
+	arch, err := NormalizePlatformArch(a.Platform, a.Arch)
+	if err != nil {
+		return err
 	}
+	a.Arch = arch
 	if !versionRe.MatchString(a.Version) { // stored versions must be canonical x.y.z
 		return fmt.Errorf("invalid version %q, want x.y.z", a.Version)
 	}

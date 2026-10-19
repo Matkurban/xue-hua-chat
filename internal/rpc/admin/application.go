@@ -58,7 +58,7 @@ func (o *adminServer) LatestApplicationVersion(ctx context.Context, req *admin.L
 	if err != nil && !IsNotFound(err) {
 		return nil, err
 	}
-	res, err := appversion.Check(list, req.Version, req.Build, req.Arch)
+	res, err := appversion.Check(list, req.Version, req.Build, appversion.LookupArch(req.Platform, req.Arch))
 	if err != nil {
 		return nil, errs.ErrArgs.WrapMsg(err.Error())
 	}
