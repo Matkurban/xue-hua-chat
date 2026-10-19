@@ -4,6 +4,7 @@ import (
 	"context"
 	"strconv"
 	"strings"
+	"time"
 
 	"chat/pkg/common/db/dbutil"
 	table "chat/pkg/common/db/table/chat"
@@ -52,7 +53,16 @@ func DbToPbUserFullInfo(attribute *table.Attribute) *common.UserFullInfo {
 		AllowVibration:   attribute.AllowVibration,
 		GlobalRecvMsgOpt: attribute.GlobalRecvMsgOpt,
 		RegisterType:     attribute.RegisterType,
+		CreateTime:       timeToMilli(attribute.CreateTime),
 	}
+}
+
+// timeToMilli maps a zero/unset time to 0 instead of a huge negative epoch.
+func timeToMilli(t time.Time) int64 {
+	if t.IsZero() || t.Unix() <= 0 {
+		return 0
+	}
+	return t.UnixMilli()
 }
 
 func DbToPbUserFullInfos(attributes []*table.Attribute) []*common.UserFullInfo {

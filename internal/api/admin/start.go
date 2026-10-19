@@ -7,12 +7,15 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 
 	chatapi "chat/internal/api/chat"
 	chatmw "chat/internal/api/mw"
 	"chat/internal/api/util"
+	"chat/pkg/common/appversion"
 	"chat/pkg/common/captcha"
 	"chat/pkg/common/config"
 	rpCache "chat/pkg/common/db/cache"
@@ -79,6 +82,22 @@ func Start(ctx context.Context, index int, config *Config) error {
 		ChatAdminUserID: config.Share.ChatAdmin[0],
 	}
 	adminApi := New(chatClient, adminClient, im, &base)
+	adminApi.Prober = appversion.NewProber()
+	pkgDir := config.AdminAPI.AppPackage.Dir
+	if pkgDir == "" {
+		pkgDir = "app_packages"
+	}
+	if !filepath.IsAbs(pkgDir) && config.ConfigPath != "" {
+		if abs, absErr := filepath.Abs(filepath.Join(config.ConfigPath, "..", pkgDir)); absErr == nil {
+			pkgDir = abs
+		}
+	}
+	adminApi.PackageBaseURL = strings.TrimRight(config.AdminAPI.AppPackage.BaseURL, "/")
+	if ps, psErr := storage.NewPackageStorage(pkgDir, "/application/files", storage.DefaultMaxPackageSize); psErr != nil {
+		log.ZWarn(ctx, "app package storage init failed, upload disabled", psErr)
+	} else {
+		adminApi.Packages = ps
+	}
 	mwApi := chatmw.New(adminClient)
 
 	// 初始化 RedPacketApi（用于管理员积分/红包查询接口）
@@ -243,8 +262,16 @@ func SetAdminRoute(router gin.IRouter, admin *Api, mw *chatmw.MW, cfg *Config, c
 	applicationGroup.POST("/add_version", mw.CheckAdmin, admin.AddApplicationVersion)
 	applicationGroup.POST("/update_version", mw.CheckAdmin, admin.UpdateApplicationVersion)
 	applicationGroup.POST("/delete_version", mw.CheckAdmin, admin.DeleteApplicationVersion)
+	applicationGroup.POST("/revoke_version", mw.CheckAdmin, admin.RevokeApplicationVersion)
+	applicationGroup.POST("/upload_package", mw.CheckAdmin, admin.UploadApplicationPackage)
+	applicationGroup.POST("/upload", mw.CheckAdmin, admin.UploadApplicationPackage) // alias
+	applicationGroup.POST("/probe_url", mw.CheckAdmin, admin.ProbeApplicationURL)
+	if admin.Packages != nil {
+		// uploaded packages are downloaded by clients without auth
+		router.Static("/application/files", admin.Packages.BaseDir)
+	}
 	applicationGroup.POST("/latest_version", admin.LatestApplicationVersion)
-	applicationGroup.POST("/page_versions", admin.PageApplicationVersion)
+	applicationGroup.POST("/page_versions", mw.CheckAdmin, admin.PageApplicationVersion)
 
 	if admin.AsrModel != nil {
 		asrGroup := router.Group("/asr_model", mw.CheckAdmin)

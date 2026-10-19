@@ -405,6 +405,16 @@ func (o *chatSvr) RegisterUser(ctx context.Context, req *chat.RegisterUserReq) (
 		chatToken, err := o.Admin.CreateToken(ctx, req.User.UserID, constant.NormalUser)
 		if err == nil {
 			resp.ChatToken = chatToken.Token
+			record := &chatdb.UserLoginRecord{
+				UserID:    req.User.UserID,
+				LoginTime: time.Now(),
+				IP:        req.Ip,
+				DeviceID:  req.DeviceID,
+				Platform:  constantpb.PlatformIDToName(int(req.Platform)),
+			}
+			if err := o.Database.LoginRecord(ctx, record, nil); err != nil {
+				log.ZError(ctx, "LoginRecord after auto-login register failed", err, "userID", req.User.UserID)
+			}
 		} else {
 			log.ZError(ctx, "Admin CreateToken Failed", err, "userID", req.User.UserID, "platform", req.Platform)
 		}

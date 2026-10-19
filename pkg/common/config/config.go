@@ -49,6 +49,11 @@ type API struct {
 		ListenIP string `mapstructure:"listenIP"`
 		Ports    []int  `mapstructure:"ports"`
 	} `mapstructure:"api"`
+	// AppPackage configures app-update package uploads (admin API only).
+	AppPackage struct {
+		Dir     string `mapstructure:"dir"`     // storage dir; relative paths resolve against the project root (parent of the config dir)
+		BaseURL string `mapstructure:"baseURL"` // public origin used to build download urls
+	} `mapstructure:"appPackage"`
 	Conference struct {
 		AutoStageLimit int `mapstructure:"autoStageLimit"` // hard max on-stage seats (auto-join + approve); default 9
 	} `mapstructure:"conference"`

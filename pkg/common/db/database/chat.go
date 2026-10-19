@@ -30,6 +30,8 @@ type ChatDatabaseInterface interface {
 	TakeLastVerifyCode(ctx context.Context, account string) (*chatdb.VerifyCode, error)
 	Search(ctx context.Context, normalUser int32, keyword string, gender int32, pagination pagination.Pagination) (int64, []*chatdb.Attribute, error)
 	SearchUser(ctx context.Context, keyword string, userIDs []string, genders []int32, pagination pagination.Pagination) (int64, []*chatdb.Attribute, error)
+	// FindUserTimes returns register times (ms) and last login times (ms) keyed by userID. Missing = absent.
+	FindUserTimes(ctx context.Context, userIDs []string) (createMs map[string]int64, loginMs map[string]int64, err error)
 	CountVerifyCodeRange(ctx context.Context, account string, start time.Time, end time.Time) (int64, error)
 	AddVerifyCode(ctx context.Context, verifyCode *chatdb.VerifyCode, fn func() error) error
 	UpdateVerifyCodeIncrCount(ctx context.Context, id string) error
@@ -281,4 +283,24 @@ func (o *ChatDatabase) DelUserAccount(ctx context.Context, userIDs []string) err
 		}
 		return nil
 	})
+}
+
+func (o *ChatDatabase) FindUserTimes(ctx context.Context, userIDs []string) (map[string]int64, map[string]int64, error) {
+	reg, err := o.register.FindCreateTimes(ctx, userIDs)
+	if err != nil {
+		return nil, nil, err
+	}
+	login, err := o.userLoginRecord.FindLastLoginTimes(ctx, userIDs)
+	if err != nil {
+		return nil, nil, err
+	}
+	createMs := make(map[string]int64, len(reg))
+	for k, v := range reg {
+		createMs[k] = v.UnixMilli()
+	}
+	loginMs := make(map[string]int64, len(login))
+	for k, v := range login {
+		loginMs[k] = v.UnixMilli()
+	}
+	return createMs, loginMs, nil
 }

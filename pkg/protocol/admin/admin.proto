@@ -473,53 +473,83 @@ message GetUserTokenResp {
 }
 
 
+// ApplicationVersion is one client package (one record per platform/arch/version/build).
+// JSON field names are snake_case on purpose (shared contract with the SDK and admin panel).
+// platform: android|ios|windows|macos|linux
+// arch: universal|arm64|x64|armeabi-v7a|amd64 ("universal" is the fallback for every client arch)
+// package_type: apk|exe|dmg|zip|deb|ipa|tar.gz
+// status: published|revoked (only published records are served to clients)
 message ApplicationVersion {
   string id = 1;
   string platform = 2;
-  string version = 3;
-  string url = 4;
-  string text = 5;
-  bool force = 6;
-  bool latest = 7;
-  bool hot = 8;
-  int64 createTime = 9;
+  string arch = 3;
+  string version = 4;       // semver x.y.z
+  int64 build = 5;
+  string url = 6;           // may be empty (mainly iOS)
+  int64 size = 7;           // bytes
+  string sha256 = 8;        // lowercase hex
+  string package_type = 9;
+  string text = 10;         // release notes
+  string min_version = 11;  // clients below this version are forced to update
+  bool force = 12;
+  string status = 13;
+  int64 create_time = 14;   // unix milliseconds
 }
 
 message LatestApplicationVersionReq {
-  string platform = 2;
-  string version = 3;
+  string platform = 1;
+  string arch = 2;
+  string version = 3;  // client version x.y.z (required)
+  int64 build = 4;     // client build number
 }
 
 message LatestApplicationVersionResp {
-  ApplicationVersion version = 1;
+  bool has_update = 1;
+  bool force = 2;
+  ApplicationVersion latest = 3; // highest published record for the client's platform/arch; unset when none
 }
 
 message AddApplicationVersionReq {
   string platform = 1;
-  string version = 2;
-  string url = 3;
-  string text = 4;
-  bool force = 5;
-  bool latest = 6;
-  bool hot = 7;
+  string arch = 2;
+  string version = 3;
+  int64 build = 4;
+  string url = 5;
+  int64 size = 6;
+  string sha256 = 7;
+  string package_type = 8;
+  string text = 9;
+  string min_version = 10;
+  bool force = 11;
+  string status = 12;   // default published
 }
 
 message AddApplicationVersionResp {
-
+  string id = 1;
 }
 
+// platform/arch/version/build identify a release and cannot be changed; delete and re-add instead.
 message UpdateApplicationVersionReq {
   string id = 1;
-  openim.protobuf.StringValue platform = 2;
-  openim.protobuf.StringValue version = 3;
-  openim.protobuf.StringValue url = 4;
-  openim.protobuf.StringValue text = 5;
-  openim.protobuf.BoolValue force = 6;
-  openim.protobuf.BoolValue latest = 7;
-  openim.protobuf.BoolValue hot = 8;
+  openim.protobuf.StringValue url = 2;
+  openim.protobuf.Int64Value size = 3;
+  openim.protobuf.StringValue sha256 = 4;
+  openim.protobuf.StringValue package_type = 5;
+  openim.protobuf.StringValue text = 6;
+  openim.protobuf.StringValue min_version = 7;
+  openim.protobuf.BoolValue force = 8;
+  openim.protobuf.StringValue status = 9;
 }
 
 message UpdateApplicationVersionResp {
+
+}
+
+message RevokeApplicationVersionReq {
+  string id = 1;
+}
+
+message RevokeApplicationVersionResp {
 
 }
 
@@ -619,5 +649,6 @@ service admin {
   rpc AddApplicationVersion(AddApplicationVersionReq) returns (AddApplicationVersionResp);
   rpc UpdateApplicationVersion(UpdateApplicationVersionReq) returns (UpdateApplicationVersionResp);
   rpc DeleteApplicationVersion(DeleteApplicationVersionReq) returns (DeleteApplicationVersionResp);
+  rpc RevokeApplicationVersion(RevokeApplicationVersionReq) returns (RevokeApplicationVersionResp);
   rpc PageApplicationVersion(PageApplicationVersionReq) returns (PageApplicationVersionResp);
 }

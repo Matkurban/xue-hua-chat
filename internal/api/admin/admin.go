@@ -11,9 +11,12 @@ import (
 
 	"chat/internal/api/util"
 	"chat/pkg/common/apistruct"
+	"chat/pkg/common/appversion"
 	"chat/pkg/common/config"
 	"chat/pkg/common/imapi"
 	"chat/pkg/common/mctx"
+	"chat/pkg/common/statsday"
+	"chat/pkg/common/storage"
 	"chat/pkg/common/xlsx"
 	"chat/pkg/common/xlsx/model"
 	"chat/pkg/protocol/admin"
@@ -27,7 +30,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/openimsdk/protocol/constant"
 	"github.com/openimsdk/protocol/sdkws"
-	"github.com/openimsdk/protocol/user"
 )
 
 func New(chatClient chat.ChatClient, adminClient admin.AdminClient, imApiCaller imapi.CallerInterface, api *util.Api) *Api {
@@ -46,6 +48,10 @@ type Api struct {
 	imApiCaller        imapi.CallerInterface
 	AsrModel           *AsrModelApi
 	SystemNotification *SystemNotificationApi
+	Packages           *storage.PackageStorage
+	PackageBaseURL     string
+	Prober             *appversion.Prober
+	NewUsers           newUserCounter
 }
 
 func (o *Api) AdminLogin(c *gin.Context) {
@@ -382,26 +388,87 @@ func (o *Api) LoginUserCount(c *gin.Context) {
 	a2r.Call(c, chat.ChatClient.UserLoginCount, o.chatClient)
 }
 
+// NewUserCountReq: start/end are unix milliseconds, range [start, end).
+type NewUserCountReq struct {
+	Start int64 `json:"start"`
+	End   int64 `json:"end"`
+}
+
+// NewUserCount returns users registered per Asia/Shanghai day in [start, end), taken from the IM server's
+// /statistics/user/register "count" map. IM's own "total" is ALL users and is ignored: total here is the sum
+// of the in-range days. Days are zero-filled / out-of-range keys dropped on this side as well, so the result
+// is correct even against an IM build that does not fill days.
 func (o *Api) NewUserCount(c *gin.Context) {
-	req, err := a2r.ParseRequest[user.UserRegisterCountReq](c)
+	req, err := a2r.ParseRequest[NewUserCountReq](c)
 	if err != nil {
 		apiresp.GinError(c, err)
 		return
 	}
-	imToken, err := o.imApiCaller.ImAdminTokenWithDefaultAdmin(c)
+	resp, err := o.newUserCount(c, req)
 	if err != nil {
 		apiresp.GinError(c, err)
 		return
 	}
-	dateCount, total, err := o.imApiCaller.UserRegisterCount(mctx.WithApiToken(c, imToken), req.Start, req.End)
-	if err != nil {
-		apiresp.GinError(c, err)
-		return
+	apiresp.GinSuccess(c, resp)
+}
+
+type newUserCounter interface {
+	CountNewUsersEveryday(ctx context.Context, start, end time.Time) (map[string]int64, int64, error)
+}
+
+func (o *Api) newUserCount(ctx context.Context, req *NewUserCountReq) (*apistruct.NewUserCountResp, error) {
+	store := o.NewUsers
+	if store == nil {
+		store = imNewUserCounter{caller: o.imApiCaller}
 	}
-	apiresp.GinSuccess(c, &apistruct.NewUserCountResp{
-		DateCount: dateCount,
-		Total:     total,
-	})
+	return computeNewUserCount(ctx, store, req)
+}
+
+// imNewUserCounter reads registrations per day from the IM server (needs an IM admin token).
+type imNewUserCounter struct {
+	caller imapi.CallerInterface
+}
+
+func (s imNewUserCounter) CountNewUsersEveryday(ctx context.Context, start, end time.Time) (map[string]int64, int64, error) {
+	imToken, err := s.caller.ImAdminTokenWithDefaultAdmin(ctx)
+	if err != nil {
+		return nil, 0, err
+	}
+	counts, _, err := s.caller.UserRegisterCount(mctx.WithApiToken(ctx, imToken), start.UnixMilli(), end.UnixMilli())
+	if err != nil {
+		return nil, 0, err
+	}
+	var sum int64
+	for _, v := range counts {
+		sum += v
+	}
+	return counts, sum, nil
+}
+
+func computeNewUserCount(ctx context.Context, store newUserCounter, req *NewUserCountReq) (*apistruct.NewUserCountResp, error) {
+	if req.Start > req.End {
+		return nil, errs.ErrArgs.WrapMsg("start > end")
+	}
+	if req.Start < 0 {
+		return nil, errs.ErrArgs.WrapMsg("invalid start")
+	}
+	// validate/bound the range before touching the DB
+	if _, err := statsday.FillDays(req.Start, req.End, nil); err != nil {
+		return nil, err
+	}
+	counts, _, err := store.CountNewUsersEveryday(ctx, time.UnixMilli(req.Start), time.UnixMilli(req.End))
+	if err != nil {
+		return nil, err
+	}
+	filled, err := statsday.FillDays(req.Start, req.End, counts)
+	if err != nil {
+		return nil, err
+	}
+	var total int64
+	for _, v := range filled {
+		total += v
+	}
+	return &apistruct.NewUserCountResp{DateCount: filled, Total: total}, nil
 }
 
 func (o *Api) ImportUserByXlsx(c *gin.Context) {
@@ -587,7 +654,12 @@ func (o *Api) AddApplicationVersion(c *gin.Context) {
 }
 
 func (o *Api) UpdateApplicationVersion(c *gin.Context) {
+	unwrapValueFields(c)
 	a2r.Call(c, admin.AdminClient.UpdateApplicationVersion, o.adminClient)
+}
+
+func (o *Api) RevokeApplicationVersion(c *gin.Context) {
+	a2r.Call(c, admin.AdminClient.RevokeApplicationVersion, o.adminClient)
 }
 
 func (o *Api) DeleteApplicationVersion(c *gin.Context) {

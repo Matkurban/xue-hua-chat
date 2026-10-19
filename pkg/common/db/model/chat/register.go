@@ -51,3 +51,18 @@ func (o *Register) Delete(ctx context.Context, userIDs []string) error {
 	}
 	return mongoutil.DeleteMany(ctx, o.coll, bson.M{"user_id": bson.M{"$in": userIDs}})
 }
+
+func (o *Register) FindCreateTimes(ctx context.Context, userIDs []string) (map[string]time.Time, error) {
+	res := make(map[string]time.Time, len(userIDs))
+	if len(userIDs) == 0 {
+		return res, nil
+	}
+	list, err := mongoutil.Find[*chat.Register](ctx, o.coll, bson.M{"user_id": bson.M{"$in": userIDs}})
+	if err != nil {
+		return nil, err
+	}
+	for _, v := range list {
+		res[v.UserID] = v.CreateTime
+	}
+	return res, nil
+}

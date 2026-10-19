@@ -20,6 +20,7 @@ import (
 	"chat/pkg/common/constant"
 	"chat/pkg/common/mctx"
 	"chat/pkg/protocol/chat"
+	"chat/pkg/protocol/common"
 	"gitee.com/matkurban/openimsdk-tools/errs"
 )
 
@@ -319,7 +320,11 @@ func (o *chatSvr) FindUserFullInfo(ctx context.Context, req *chat.FindUserFullIn
 	if err != nil {
 		return nil, err
 	}
-	return &chat.FindUserFullInfoResp{Users: DbToPbUserFullInfos(attributes)}, nil
+	users := DbToPbUserFullInfos(attributes)
+	if err := o.fillUserTimes(ctx, users); err != nil {
+		return nil, err
+	}
+	return &chat.FindUserFullInfoResp{Users: users}, nil
 }
 
 func (o *chatSvr) SearchUserFullInfo(ctx context.Context, req *chat.SearchUserFullInfoReq) (*chat.SearchUserFullInfoResp, error) {
@@ -330,10 +335,46 @@ func (o *chatSvr) SearchUserFullInfo(ctx context.Context, req *chat.SearchUserFu
 	if err != nil {
 		return nil, err
 	}
+	users := DbToPbUserFullInfos(list)
+	if err := o.fillUserTimes(ctx, users); err != nil {
+		return nil, err
+	}
 	return &chat.SearchUserFullInfoResp{
 		Total: uint32(total),
-		Users: DbToPbUserFullInfos(list),
+		Users: users,
 	}, nil
+}
+
+// fillUserTimes 填 createTime（注册时间，缺失时回退到 register 表）和 lastLoginTime（最近登录，来自 user_login_record），单位毫秒。
+func (o *chatSvr) fillUserTimes(ctx context.Context, users []*common.UserFullInfo) error {
+	ids := make([]string, 0, len(users))
+	for _, u := range users {
+		if u != nil && u.UserID != "" {
+			ids = append(ids, u.UserID)
+		}
+	}
+	createMs, loginMs, err := o.Database.FindUserTimes(ctx, ids)
+	if err != nil {
+		return err
+	}
+	applyUserTimes(users, createMs, loginMs)
+	return nil
+}
+
+func applyUserTimes(users []*common.UserFullInfo, createMs, loginMs map[string]int64) {
+	for _, u := range users {
+		if u == nil {
+			continue
+		}
+		if u.CreateTime <= 0 {
+			if v := createMs[u.UserID]; v > 0 {
+				u.CreateTime = v
+			}
+		}
+		if v := loginMs[u.UserID]; v > 0 {
+			u.LastLoginTime = v
+		}
+	}
 }
 
 func (o *chatSvr) FindUserAccount(ctx context.Context, req *chat.FindUserAccountReq) (*chat.FindUserAccountResp, error) {

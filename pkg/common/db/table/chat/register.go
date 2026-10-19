@@ -22,6 +22,8 @@ func (Register) TableName() string {
 type RegisterInterface interface {
 	// NewTx(tx any) RegisterInterface
 	Create(ctx context.Context, registers ...*Register) error
+	// FindCreateTimes returns userID -> create_time for the given users.
+	FindCreateTimes(ctx context.Context, userIDs []string) (map[string]time.Time, error)
 	CountTotal(ctx context.Context, before *time.Time) (int64, error)
 	Delete(ctx context.Context, userIDs []string) error
 }

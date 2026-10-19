@@ -392,7 +392,6 @@ func SetChatRoute(router gin.IRouter, chat *Api, mw *chatmw.MW) {
 
 	applicationGroup := router.Group("application")
 	applicationGroup.POST("/latest_version", chat.LatestApplicationVersion)
-	applicationGroup.POST("/page_versions", chat.PageApplicationVersion)
 
 	// 红包 & 积分（用户端）
 	redPacket := router.Group("/red_packet", mw.CheckToken)

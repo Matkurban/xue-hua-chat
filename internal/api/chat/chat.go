@@ -416,7 +416,3 @@ func (o *Api) SearchFriend(c *gin.Context) {
 func (o *Api) LatestApplicationVersion(c *gin.Context) {
 	a2r.Call(c, admin.AdminClient.LatestApplicationVersion, o.adminClient)
 }
-
-func (o *Api) PageApplicationVersion(c *gin.Context) {
-	a2r.Call(c, admin.AdminClient.PageApplicationVersion, o.adminClient)
-}

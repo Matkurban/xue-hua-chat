@@ -374,3 +374,6 @@ dist
 # config files, may contain sensitive informatio
 config/config.yaml
 .DS_Store
+
+# uploaded client packages
+app_packages/

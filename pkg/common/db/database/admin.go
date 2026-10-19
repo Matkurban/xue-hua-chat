@@ -66,7 +66,8 @@ type AdminDatabaseInterface interface {
 	CacheToken(ctx context.Context, userID string, token string, expire time.Duration) error
 	GetTokens(ctx context.Context, userID string) (map[string]int32, error)
 	DeleteToken(ctx context.Context, userID string) error
-	LatestVersion(ctx context.Context, platform string) (*admindb.Application, error)
+	ListPublishedVersions(ctx context.Context, platform string) ([]*admindb.Application, error)
+	TakeVersion(ctx context.Context, id bson.ObjectID) (*admindb.Application, error)
 	AddVersion(ctx context.Context, val *admindb.Application) error
 	UpdateVersion(ctx context.Context, id bson.ObjectID, update map[string]any) error
 	DeleteVersion(ctx context.Context, id []bson.ObjectID) error
@@ -347,8 +348,12 @@ func (o *AdminDatabase) DeleteToken(ctx context.Context, userID string) error {
 	return o.cache.DeleteTokenByUid(ctx, userID)
 }
 
-func (o *AdminDatabase) LatestVersion(ctx context.Context, platform string) (*admindb.Application, error) {
-	return o.application.LatestVersion(ctx, platform)
+func (o *AdminDatabase) ListPublishedVersions(ctx context.Context, platform string) ([]*admindb.Application, error) {
+	return o.application.ListPublished(ctx, platform)
+}
+
+func (o *AdminDatabase) TakeVersion(ctx context.Context, id bson.ObjectID) (*admindb.Application, error) {
+	return o.application.Take(ctx, id)
 }
 
 func (o *AdminDatabase) AddVersion(ctx context.Context, val *admindb.Application) error {

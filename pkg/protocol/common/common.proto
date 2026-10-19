@@ -20,6 +20,10 @@ message UserFullInfo{
   int32  allowVibration = 14;
   int32 globalRecvMsgOpt = 15;
   int32 registerType = 16;
+  // ms epoch; registration time (attributes.create_time, falls back to register.create_time). 0 = unknown
+  int64 createTime = 17;
+  // ms epoch; most recent login (user_login_record.login_time). 0 = never logged in / unknown
+  int64 lastLoginTime = 18;
 }
 
 message UserPublicInfo{

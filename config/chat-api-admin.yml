@@ -4,3 +4,11 @@ api:
   # Listening ports; if multiple are configured, multiple instances will be launched
   ports: [ 10009 ]
 
+# App-update package upload (POST /application/upload_package)
+appPackage:
+  # Storage dir. Relative paths resolve against the project root (parent of this config dir), independent of cwd.
+  dir: ./app_packages
+  # Public origin of the admin API as seen by clients; download url = baseURL + /application/files/<random>/<name>
+  # e.g. https://<your-domain>/chat-admin-api . Empty = derived from X-Forwarded-Proto/Host of the request
+  # (that fallback does NOT know about a reverse-proxy path prefix, so set this in production).
+  baseURL: ""
