@@ -10,6 +10,8 @@ import (
 	"gitee.com/matkurban/openimsdk-tools/apiresp"
 	"gitee.com/matkurban/openimsdk-tools/errs"
 	"github.com/gin-gonic/gin"
+
+	"chat/pkg/common/storage"
 )
 
 // UploadApplicationPackageResp is the result of POST /application/upload.
@@ -19,6 +21,54 @@ type UploadApplicationPackageResp struct {
 	Sha256      string `json:"sha256"`
 	Filename    string `json:"filename"`
 	PackageType string `json:"package_type"`
+	// Deduplicated is true when an identical file (same sha256+size) already existed and was reused.
+	Deduplicated bool `json:"deduplicated"`
+}
+
+type checkPackageReq struct {
+	Sha256   string `json:"sha256"`
+	Size     int64  `json:"size"`
+	Filename string `json:"filename"`
+}
+
+// CheckPackageResp is the result of POST /application/check_package (instant upload / 秒传).
+type CheckPackageResp struct {
+	Exists      bool   `json:"exists"`
+	Url         string `json:"url,omitempty"`
+	Size        int64  `json:"size,omitempty"`
+	Sha256      string `json:"sha256,omitempty"`
+	Filename    string `json:"filename,omitempty"`
+	PackageType string `json:"package_type,omitempty"`
+}
+
+// CheckApplicationPackage reports whether a package with this sha256 AND size is already stored. Admin only.
+// sha256 is trimmed and lowercased before validation; anything other than 64 hex chars is ErrArgs (1001).
+func (o *Api) CheckApplicationPackage(c *gin.Context) {
+	if o.Packages == nil {
+		apiresp.GinError(c, errs.ErrInternalServer.WrapMsg("package storage is not available"))
+		return
+	}
+	var req checkPackageReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		apiresp.GinError(c, errs.ErrArgs.WrapMsg("invalid json body"))
+		return
+	}
+	sha, ok := storage.NormalizeSha256(req.Sha256)
+	if !ok {
+		apiresp.GinError(c, errs.ErrArgs.WrapMsg("sha256 must be 64 hex characters"))
+		return
+	}
+	if req.Size <= 0 {
+		apiresp.GinError(c, errs.ErrArgs.WrapMsg("size must be > 0"))
+		return
+	}
+	saved, found := o.Packages.Lookup(sha, req.Size)
+	if !found {
+		apiresp.GinSuccess(c, &CheckPackageResp{Exists: false})
+		return
+	}
+	apiresp.GinSuccess(c, &CheckPackageResp{Exists: true, Url: o.packageBaseURL(c) + saved.Path, Size: saved.Size,
+		Sha256: saved.Sha256, Filename: saved.Filename, PackageType: saved.PackageType})
 }
 
 // UploadApplicationPackage stores a client package (multipart field "file") and returns its
@@ -50,7 +100,7 @@ func (o *Api) UploadApplicationPackage(c *gin.Context) {
 		}
 		apiresp.GinSuccess(c, &UploadApplicationPackageResp{
 			Url: o.packageBaseURL(c) + saved.Path, Size: saved.Size, Sha256: saved.Sha256,
-			Filename: saved.Filename, PackageType: saved.PackageType,
+			Filename: saved.Filename, PackageType: saved.PackageType, Deduplicated: saved.Deduplicated,
 		})
 		return
 	}

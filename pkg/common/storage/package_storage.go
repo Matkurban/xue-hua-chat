@@ -39,6 +39,8 @@ type SavedPackage struct {
 	Sha256      string
 	Filename    string
 	PackageType string
+	// Deduplicated is true when SaveReader found an identical file and returned it instead.
+	Deduplicated bool
 }
 
 func NewPackageStorage(baseDir, urlPrefix string, maxFileSize int64) (*PackageStorage, error) {
@@ -112,8 +114,19 @@ func (s *PackageStorage) SaveReader(filename string, src io.Reader) (*SavedPacka
 		_ = os.RemoveAll(dir)
 		return nil, err
 	}
+	sum := hex.EncodeToString(h.Sum(nil))
+	// instant upload / dedup: same sha256+size already stored -> drop the new copy, return the old one
+	if existing, ok := s.Lookup(sum, n); ok {
+		existing.Deduplicated = true
+		_ = os.RemoveAll(dir)
+		return existing, nil
+	}
+	relFile := path.Join(rel, name)
+	// index failure is non-fatal: the upload still succeeds, Backfill can re-index later
+	_ = s.writeIndex(&PackageIndexEntry{Path: relFile, Size: n, Sha256: sum, Filename: name,
+		PackageType: pt, CreateTime: time.Now().UnixMilli()})
 	return &SavedPackage{
-		Path: path.Join(s.URLPrefix, rel, name), Size: n, Sha256: hex.EncodeToString(h.Sum(nil)),
+		Path: path.Join(s.URLPrefix, relFile), Size: n, Sha256: sum,
 		Filename: name, PackageType: pt,
 	}, nil
 }

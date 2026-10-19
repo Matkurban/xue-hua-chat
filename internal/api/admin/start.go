@@ -97,6 +97,12 @@ func Start(ctx context.Context, index int, config *Config) error {
 		log.ZWarn(ctx, "app package storage init failed, upload disabled", psErr)
 	} else {
 		adminApi.Packages = ps
+		go func() { // backfill the instant-upload index for files stored before it existed; never blocks startup
+			start := time.Now()
+			r, bErr := ps.Backfill()
+			log.ZInfo(ctx, "app package index backfill done", "dir", ps.BaseDir, "scanned", r.Scanned, "indexed", r.Indexed,
+				"skipped", r.Skipped, "failed", r.Failed, "err", bErr, "cost", time.Since(start).String())
+		}()
 	}
 	mwApi := chatmw.New(adminClient)
 
@@ -265,10 +271,14 @@ func SetAdminRoute(router gin.IRouter, admin *Api, mw *chatmw.MW, cfg *Config, c
 	applicationGroup.POST("/revoke_version", mw.CheckAdmin, admin.RevokeApplicationVersion)
 	applicationGroup.POST("/upload_package", mw.CheckAdmin, admin.UploadApplicationPackage)
 	applicationGroup.POST("/upload", mw.CheckAdmin, admin.UploadApplicationPackage) // alias
+	applicationGroup.POST("/check_package", mw.CheckAdmin, admin.CheckApplicationPackage)
 	applicationGroup.POST("/probe_url", mw.CheckAdmin, admin.ProbeApplicationURL)
 	if admin.Packages != nil {
 		// uploaded packages are downloaded by clients without auth
-		router.Static("/application/files", admin.Packages.BaseDir)
+		// dot-paths (.index, temp files) and directory listings are 404
+		fh := gin.WrapH(admin.Packages.FileHandler())
+		router.GET("/application/files/*filepath", fh)
+		router.HEAD("/application/files/*filepath", fh)
 	}
 	applicationGroup.POST("/latest_version", admin.LatestApplicationVersion)
 	applicationGroup.POST("/page_versions", mw.CheckAdmin, admin.PageApplicationVersion)
