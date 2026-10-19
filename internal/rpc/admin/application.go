@@ -27,7 +27,7 @@ func (o *adminServer) db2pbApplication(val *admindb.Application) *admin.Applicat
 	return &admin.ApplicationVersion{
 		Id:          val.ID.Hex(),
 		Platform:    val.Platform,
-		Arch:        val.Arch,
+		Arch:        appversion.NormalizeArch(val.Arch),
 		Version:     val.Version,
 		Build:       val.Build,
 		Url:         val.Url,
@@ -154,7 +154,14 @@ func (o *adminServer) UpdateApplicationVersion(ctx context.Context, req *admin.U
 		"url": merged.Url, "size": merged.Size, "sha256": merged.Sha256, "package_type": merged.PackageType,
 		"text": merged.Text, "min_version": merged.MinVersion, "force": merged.Force, "status": merged.Status,
 	}
+	if merged.Arch != cur.Arch {
+		// legacy alias spelling (e.g. armeabi-v7a/amd64): store the canonical name on the next edit
+		update["arch"] = merged.Arch
+	}
 	if err := o.Database.UpdateVersion(ctx, oid, update); err != nil {
+		if mongo.IsDuplicateKeyError(err) {
+			return nil, errs.ErrDuplicateKey.WrapMsg("a record with the canonical arch " + merged.Arch + " already exists for this platform/version/build")
+		}
 		return nil, err
 	}
 	return &admin.UpdateApplicationVersionResp{}, nil

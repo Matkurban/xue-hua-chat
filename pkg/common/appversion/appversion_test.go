@@ -133,9 +133,11 @@ func TestValidate(t *testing.T) {
 		{"empty url allowed", func(a *admindb.Application) { a.Url = "" }, true},
 		{"ios without url/sha", func(a *admindb.Application) { a.Platform, a.Url, a.Sha256, a.Size = "ios", "", "", 0 }, true},
 		{"empty arch defaults to universal", func(a *admindb.Application) { a.Arch = "" }, true},
-		{"all whitelisted arches", func(a *admindb.Application) { a.Arch = "armeabi-v7a" }, true},
+		{"canonical armv7", func(a *admindb.Application) { a.Arch = "armv7" }, true},
+		{"alias armeabi-v7a accepted", func(a *admindb.Application) { a.Arch = "armeabi-v7a" }, true},
+		{"canonical x86", func(a *admindb.Application) { a.Arch = "x86" }, true},
 		{"bad platform", func(a *admindb.Application) { a.Platform = "symbian" }, false},
-		{"bad arch", func(a *admindb.Application) { a.Arch = "x86" }, false},
+		{"bad arch", func(a *admindb.Application) { a.Arch = "mips" }, false},
 		{"bad version", func(a *admindb.Application) { a.Version = "1.2" }, false},
 		{"v prefix rejected when stored", func(a *admindb.Application) { a.Version = "v1.2.3" }, false},
 		{"negative build", func(a *admindb.Application) { a.Build = -1 }, false},
@@ -164,5 +166,75 @@ func TestValidate(t *testing.T) {
 	_ = Validate(a)
 	if a.Arch != ArchUniversal || a.Status != StatusPublished {
 		t.Errorf("defaults not applied: %s %s", a.Arch, a.Status)
+	}
+}
+
+func TestNormalizeArch(t *testing.T) {
+	cases := map[string]string{
+		"": "universal", " Universal ": "universal",
+		"arm64": "arm64", "arm64-v8a": "arm64", "AARCH64": "arm64",
+		"armv7": "armv7", "armeabi-v7a": "armv7", "armeabi": "armv7", "armv7l": "armv7", "armhf": "armv7", "arm": "armv7",
+		"x64": "x64", "amd64": "x64", "x86_64": "x64", "x86-64": "x64",
+		"x86": "x86", "i386": "x86", "i686": "x86", "ia32": "x86",
+		"mips": "mips",
+	}
+	for in, want := range cases {
+		if got := NormalizeArch(in); got != want {
+			t.Errorf("NormalizeArch(%q)=%q want %q", in, got, want)
+		}
+	}
+}
+
+func TestValidateNormalizesAlias(t *testing.T) {
+	a := rel("amd64", "1.0.0", 1)
+	a.Platform = "windows"
+	if err := Validate(a); err != nil || a.Arch != "x64" {
+		t.Fatalf("want x64, got %q err=%v", a.Arch, err)
+	}
+}
+
+func TestCheckArchAliases(t *testing.T) {
+	// legacy (unmigrated) record spelled armeabi-v7a must be served to a client reporting armv7, and vice versa
+	got, err := Check([]*admindb.Application{rel("armeabi-v7a", "1.1.0", 1)}, "1.0.0", 1, "armv7")
+	if err != nil || !got.HasUpdate {
+		t.Fatalf("armv7 client should match armeabi-v7a record: %+v %v", got, err)
+	}
+	got, err = Check([]*admindb.Application{rel("armv7", "1.1.0", 1)}, "1.0.0", 1, "armeabi-v7a")
+	if err != nil || !got.HasUpdate {
+		t.Fatalf("armeabi-v7a client should match armv7 record: %+v %v", got, err)
+	}
+	got, _ = Check([]*admindb.Application{rel("x64", "1.1.0", 1)}, "1.0.0", 1, "x86_64")
+	if !got.HasUpdate {
+		t.Fatal("x86_64 client should match x64 record")
+	}
+	got, _ = Check([]*admindb.Application{rel("x64", "1.1.0", 1)}, "1.0.0", 1, "x86")
+	if got.HasUpdate || got.Latest != nil {
+		t.Fatal("x86 client must not get x64 record")
+	}
+	// exact (aliased) arch still wins over universal on a tie
+	got, _ = Check([]*admindb.Application{rel("universal", "1.1.0", 1), rel("amd64", "1.1.0", 1)}, "1.0.0", 1, "x64")
+	if got.Latest.Arch != "amd64" {
+		t.Fatalf("exact arch should win, got %s", got.Latest.Arch)
+	}
+}
+
+func TestCheckSkippedForceNotInherited(t *testing.T) {
+	// 2.0.5 is force, latest 2.0.6 is not: client 2.0.4 is not forced (spec section 3); min_version expresses it
+	r5 := rel("universal", "2.0.5", 0, func(a *admindb.Application) { a.Force = true })
+	r6 := rel("universal", "2.0.6", 0)
+	got, _ := Check([]*admindb.Application{r5, r6}, "2.0.4", 0, "arm64")
+	if !got.HasUpdate || got.Force || got.Latest.Version != "2.0.6" {
+		t.Fatalf("force must not be inherited: %+v", got)
+	}
+	r6.MinVersion = "2.0.5"
+	got, _ = Check([]*admindb.Application{r5, r6}, "2.0.4", 0, "arm64")
+	if !got.Force {
+		t.Fatal("min_version on latest must force older clients")
+	}
+	// revoked latest is fully excluded, including its force
+	r7 := rel("universal", "2.0.7", 0, func(a *admindb.Application) { a.Force = true; a.Status = StatusRevoked })
+	got, _ = Check([]*admindb.Application{r6, r7}, "2.0.6", 0, "arm64")
+	if got.HasUpdate || got.Force || got.Latest.Version != "2.0.6" {
+		t.Fatalf("revoked must be excluded: %+v", got)
 	}
 }

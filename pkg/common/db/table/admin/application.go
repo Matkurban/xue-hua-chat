@@ -15,7 +15,7 @@ import (
 type Application struct {
 	ID          bson.ObjectID `bson:"_id"`
 	Platform    string        `bson:"platform"`     // android|ios|windows|macos|linux
-	Arch        string        `bson:"arch"`         // universal|arm64|x64|armeabi-v7a|amd64
+	Arch        string        `bson:"arch"`         // universal|arm64|armv7|x64|x86 (aliases normalized by appversion.NormalizeArch)
 	Version     string        `bson:"version"`      // semver x.y.z
 	Build       int64         `bson:"build"`        // build number, tie-breaker for equal versions
 	Url         string        `bson:"url"`          // external package URL, may be empty for ios

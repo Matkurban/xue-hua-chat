@@ -476,7 +476,7 @@ message GetUserTokenResp {
 // ApplicationVersion is one client package (one record per platform/arch/version/build).
 // JSON field names are snake_case on purpose (shared contract with the SDK and admin panel).
 // platform: android|ios|windows|macos|linux
-// arch: universal|arm64|x64|armeabi-v7a|amd64 ("universal" is the fallback for every client arch)
+// arch: universal|arm64|armv7|x64|x86 (aliases such as armeabi-v7a/amd64 are normalized) ("universal" is the fallback for every client arch)
 // package_type: apk|exe|dmg|zip|deb|ipa|tar.gz
 // status: published|revoked (only published records are served to clients)
 message ApplicationVersion {

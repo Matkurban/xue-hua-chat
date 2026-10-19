@@ -3,7 +3,7 @@
 集合 `application`，每条记录 = 一个 `platform/arch/version/build` 的安装包。"最新版"由服务端计算，不再手工维护 `latest/hot`。
 
 ## 模型（JSON 全部 snake_case）
-`id, platform(android|ios|windows|macos|linux), arch(universal|arm64|x64|armeabi-v7a|amd64), version(x.y.z), build(int), url(可空，iOS 常空，非空须 http/https), size(bytes), sha256(64位小写hex或空), package_type(apk|exe|dmg|zip|deb|ipa|tar.gz 或空), text, min_version, force, status(published|revoked，默认 published), create_time(毫秒)`
+`id, platform(android|ios|windows|macos|linux), arch(universal|arm64|armv7|x64|x86，见下“架构”), version(x.y.z), build(int), url(可空，iOS 常空，非空须 http/https), size(bytes), sha256(64位小写hex或空), package_type(apk|exe|dmg|zip|deb|ipa|tar.gz 或空), text, min_version, force, status(published|revoked，默认 published), create_time(毫秒)`
 唯一索引 `uniq_release(platform, arch, version, build)`。
 
 ## 规则（pkg/common/appversion，有单测）
@@ -12,6 +12,26 @@
 - `force`（仅 has_update 时）= latest.force OR 客户端 version < latest.min_version。
 - 无记录 → `has_update=false, force=false, latest=null`。
 - 修改记录不能改 platform/arch/version/build（请求里没有这些字段，传了也忽略）。
+
+## 架构（arch）
+规范值只有 `universal | arm64 | armv7 | x64 | x86`，与 Flutter 客户端上报一致（Android 取 supportedAbis：arm64-v8a→arm64、armeabi-v7a→armv7、x86_64→x64、x86→x86；桌面取 Dart `Abi.current()`；macOS/iOS 固定 universal）。
+服务端在 add_version、update_version（老记录的别名在下一次修改时改写为规范值）、latest_version 入参、以及返回的记录上统一做归一化（`appversion.NormalizeArch`，不区分大小写、去空格）：
+
+| 别名 | 规范值 |
+|---|---|
+| 空、all、any、noarch | universal |
+| arm64-v8a、aarch64、armv8、arm64e | arm64 |
+| armeabi-v7a、armeabi、armv7l、armv7a、armhf、arm | armv7 |
+| amd64、x86_64、x86-64、x8664 | x64 |
+| i386、i686、ia32、386 | x86 |
+
+其它值在 add/update 时返回 1001；客户端上报未知 arch 时只匹配 universal 记录。比较时库里未迁移的别名（如 `armeabi-v7a`）也按规范值匹配。
+（Elephant 那边服务端白名单 armeabi-v7a/amd64 与客户端上报 armv7/x64 不一致，这里没有照搬。）
+
+## 强制更新规则补充
+- 只看最新那条：跳过的中间版本上的 `force` 不会继承；要让低于某版本的客户端必须更新，在最新记录上设 `min_version`。
+- `revoked` 记录完全不参与候选（也不影响 force）；撤回最新版后自动回退到下一个 published 版本。
+- `has_update=false` 时 `latest` 仍可能返回（客户端已是最新时就是它自己那版），客户端不要只靠 `latest != null` 判断。
 
 ## 接口
 Chat API（默认 :10008）与 Admin API（:10009）均提供 `POST /application/latest_version`（无需 token）。其余在 Admin API，需 header `token: <adminToken>`、`operationID: <任意>`。
@@ -34,4 +54,4 @@ Chat API（默认 :10008）与 Admin API（:10009）均提供 `POST /application
 
 ## 迁移
 服务启动时会自动删除 v1 的两个旧索引（`platform_1_version_1`、`latest_-1`）并建立新索引（`uniq_release`、`platform_status`），但**不会改写已有文档**。v1 文档没有 `arch/build/status` 字段：迁移前它们不会出现在 `latest_version` 结果里（只取 `status=published`），在 `page_versions` 里 `arch/status` 为空。
-需要保留老记录时，部署后执行 `docs/migrations/application-v2.js`（mongosh 脚本，不会自动执行）：补 `arch=universal, build=0, status=published` 等默认值、删除 `latest/hot`，并列出不是严格 `x.y.z` 的版本号供手工修正/删除。若老数据无保留价值，可用 `DROP=true` 直接删集合。**不要在生产自动执行，先在副本上验证。**
+需要保留老记录时，部署后执行 `docs/migrations/application-v2.js`（mongosh 脚本，不会自动执行）：补 `arch=universal, build=0, status=published` 等默认值、删除 `latest/hot`，把 arch 别名改写为规范值（会撞唯一键的只打印 WARN 不改），并列出不是严格 `x.y.z` 的版本号供手工修正/删除。若老数据无保留价值，可用 `DROP=true` 直接删集合。**不要在生产自动执行，先在副本上验证。**
