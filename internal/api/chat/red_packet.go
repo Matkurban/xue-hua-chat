@@ -545,22 +545,50 @@ type AdminAdjustPointsReq struct {
 	Remark string  `json:"remark"`
 }
 
+type adminPaginationReq struct {
+	PageNumber int32 `json:"pageNumber"`
+	ShowNumber int32 `json:"showNumber"`
+}
+
+func resolveAdminPage(pageNumber, showNumber int32, nested *adminPaginationReq) (int32, int32) {
+	if nested != nil {
+		if nested.PageNumber > 0 {
+			pageNumber = nested.PageNumber
+		}
+		if nested.ShowNumber > 0 {
+			showNumber = nested.ShowNumber
+		}
+	}
+	if pageNumber <= 0 {
+		pageNumber = 1
+	}
+	if showNumber <= 0 {
+		showNumber = 20
+	}
+	return pageNumber, showNumber
+}
+
 type AdminListPointsReq struct {
-	Keyword    string `json:"keyword"`
-	PageNumber int32  `json:"pageNumber"`
-	ShowNumber int32  `json:"showNumber"`
+	Keyword    string              `json:"keyword"`
+	PageNumber int32               `json:"pageNumber"`
+	ShowNumber int32               `json:"showNumber"`
+	Pagination *adminPaginationReq `json:"pagination"`
 }
 
 type AdminListRedPacketsReq struct {
-	Keyword    string `json:"keyword"`
-	PageNumber int32  `json:"pageNumber"`
-	ShowNumber int32  `json:"showNumber"`
+	Keyword    string              `json:"keyword"`
+	SenderID   string              `json:"senderID"`
+	PageNumber int32               `json:"pageNumber"`
+	ShowNumber int32               `json:"showNumber"`
+	Pagination *adminPaginationReq `json:"pagination"`
 }
 
 type AdminListGrabsReq struct {
-	Keyword    string `json:"keyword"`
-	PageNumber int32  `json:"pageNumber"`
-	ShowNumber int32  `json:"showNumber"`
+	Keyword    string              `json:"keyword"`
+	PacketID   string              `json:"packetID"`
+	PageNumber int32               `json:"pageNumber"`
+	ShowNumber int32               `json:"showNumber"`
+	Pagination *adminPaginationReq `json:"pagination"`
 }
 
 // AdminAdjustPoints POST /admin/points/adjust
@@ -627,13 +655,8 @@ func (o *RedPacketApi) AdminListPoints(c *gin.Context) {
 		apiresp.GinError(c, errs.ErrArgs.WrapMsg(err.Error()))
 		return
 	}
-	if req.PageNumber <= 0 {
-		req.PageNumber = 1
-	}
-	if req.ShowNumber <= 0 {
-		req.ShowNumber = 20
-	}
-	p := newPage(req.PageNumber, req.ShowNumber)
+	pageNum, showNum := resolveAdminPage(req.PageNumber, req.ShowNumber, req.Pagination)
+	p := newPage(pageNum, showNum)
 	total, users, err := o.db.SearchUserPoints(c.Request.Context(), req.Keyword, p)
 	if err != nil {
 		apiresp.GinError(c, err)
@@ -649,14 +672,13 @@ func (o *RedPacketApi) AdminListRedPackets(c *gin.Context) {
 		apiresp.GinError(c, errs.ErrArgs.WrapMsg(err.Error()))
 		return
 	}
-	if req.PageNumber <= 0 {
-		req.PageNumber = 1
+	pageNum, showNum := resolveAdminPage(req.PageNumber, req.ShowNumber, req.Pagination)
+	keyword := req.Keyword
+	if keyword == "" {
+		keyword = req.SenderID
 	}
-	if req.ShowNumber <= 0 {
-		req.ShowNumber = 20
-	}
-	p := newPage(req.PageNumber, req.ShowNumber)
-	total, packets, err := o.db.SearchRedPackets(c.Request.Context(), req.Keyword, p)
+	p := newPage(pageNum, showNum)
+	total, packets, err := o.db.SearchRedPackets(c.Request.Context(), keyword, p)
 	if err != nil {
 		apiresp.GinError(c, err)
 		return
@@ -671,14 +693,13 @@ func (o *RedPacketApi) AdminListGrabs(c *gin.Context) {
 		apiresp.GinError(c, errs.ErrArgs.WrapMsg(err.Error()))
 		return
 	}
-	if req.PageNumber <= 0 {
-		req.PageNumber = 1
+	pageNum, showNum := resolveAdminPage(req.PageNumber, req.ShowNumber, req.Pagination)
+	keyword := req.Keyword
+	if keyword == "" {
+		keyword = req.PacketID
 	}
-	if req.ShowNumber <= 0 {
-		req.ShowNumber = 20
-	}
-	p := newPage(req.PageNumber, req.ShowNumber)
-	total, grabs, err := o.db.SearchGrabs(c.Request.Context(), req.Keyword, p)
+	p := newPage(pageNum, showNum)
+	total, grabs, err := o.db.SearchGrabs(c.Request.Context(), keyword, p)
 	if err != nil {
 		apiresp.GinError(c, err)
 		return

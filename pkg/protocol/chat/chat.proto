@@ -269,16 +269,6 @@ message SearchUserInfoResp {
   repeated .chat.common.UserFullInfo users = 2;
 }
 
-message GetTokenForVideoMeetingReq {
-  string room = 1;
-  string identity = 2;
-}
-
-message GetTokenForVideoMeetingResp {
-  string serverUrl = 1;
-  string token = 2;
-}
-
 message CheckUserExistReq {
   RegisterUserInfo user = 1;
 }
@@ -340,9 +330,6 @@ service chat {
   rpc UserLoginCount(UserLoginCountReq) returns (UserLoginCountResp);
 
   rpc SearchUserInfo(SearchUserInfoReq) returns (SearchUserInfoResp);
-
-  // Audio/video call and video meeting
-  rpc GetTokenForVideoMeeting(GetTokenForVideoMeetingReq) returns (GetTokenForVideoMeetingResp);
 
   rpc SetAllowRegister(SetAllowRegisterReq) returns(SetAllowRegisterResp);
   rpc GetAllowRegister(GetAllowRegisterReq) returns(GetAllowRegisterResp);

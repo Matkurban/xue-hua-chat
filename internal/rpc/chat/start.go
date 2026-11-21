@@ -7,7 +7,6 @@ import (
 
 	"chat/pkg/common/constant"
 	"chat/pkg/common/mctx"
-	"chat/pkg/common/rtc"
 	"chat/pkg/protocol/admin"
 	"chat/pkg/protocol/chat"
 	"chat/pkg/common/db/mongoutil"
@@ -30,7 +29,6 @@ type Config struct {
 	MongodbConfig config.Mongo
 	Discovery     config.Discovery
 	Share         config.Share
-	LiveKit       config.LiveKit
 }
 
 func Start(ctx context.Context, config *Config, client discovery.SvcDiscoveryRegistry, server *grpc.Server) error {
@@ -73,7 +71,6 @@ func Start(ctx context.Context, config *Config, client discovery.SvcDiscoveryReg
 		ValidTime:  time.Duration(config.RpcConfig.VerifyCode.ValidTime) * time.Second,
 		Len:        config.RpcConfig.VerifyCode.Len,
 	}
-	srv.Livekit = rtc.NewLiveKit(config.LiveKit.Key, config.LiveKit.Secret, config.LiveKit.URL)
 	srv.AllowRegister = config.RpcConfig.AllowRegister
 	chat.RegisterChatServer(server, &srv)
 	return nil
@@ -87,7 +84,6 @@ type chatSvr struct {
 	SMS             sms.SMS
 	Mail            email.Mail
 	Code            verifyCode
-	Livekit         *rtc.LiveKit
 	ChatAdminUserID string
 	AllowRegister   bool
 }

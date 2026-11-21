@@ -39,7 +39,6 @@ func NewChatRpcCmd() *ChatRpcCmd {
 		config.DiscoveryConfigFileName: &ret.chatConfig.Discovery,
 		config.MongodbConfigFileName:   &ret.chatConfig.MongodbConfig,
 		config.ShareFileName:           &ret.chatConfig.Share,
-		config.LiveKitConfigFileName:   &ret.chatConfig.LiveKit,
 	}
 	ret.RootCmd = NewRootCmd(program.GetProcessName(), WithConfigMap(ret.configMap))
 	ret.ctx = context.WithValue(context.Background(), "version", config.Version)
@@ -63,7 +62,6 @@ func (a *ChatRpcCmd) runE() error {
 			config.DiscoveryConfigFileName,
 			config.MongodbConfigFileName,
 			config.ShareFileName,
-			config.LiveKitConfigFileName,
 			config.LogConfigFileName,
 		}, nil,
 		chat.Start)

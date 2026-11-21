@@ -343,10 +343,6 @@ func (o *Api) SearchUserPublicInfo(c *gin.Context) {
 	a2r.Call(c, chatpb.ChatClient.SearchUserPublicInfo, o.chatClient)
 }
 
-func (o *Api) GetTokenForVideoMeeting(c *gin.Context) {
-	a2r.Call(c, chatpb.ChatClient.GetTokenForVideoMeeting, o.chatClient)
-}
-
 // ################## APPLET ##################
 
 func (o *Api) FindApplet(c *gin.Context) {

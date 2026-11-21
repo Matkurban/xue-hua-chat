@@ -328,7 +328,7 @@ func SetAdminRoute(router gin.IRouter, admin *Api, mw *chatmw.MW, cfg *Config, c
 
 	{
 		// 朋友圈管理：透传到 xue-hua-server /moment/admin/*
-		momentAdmin := router.Group("/admin/moment/admin", mw.CheckAdmin)
+		momentAdmin := router.Group("/moment/admin", mw.CheckAdmin)
 		momentAdmin.POST("/list", admin.MomentAdminList)
 		momentAdmin.POST("/detail", admin.MomentAdminDetail)
 		momentAdmin.POST("/delete", admin.MomentAdminDelete)
