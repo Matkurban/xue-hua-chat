@@ -3,8 +3,8 @@ package chat
 import (
 	"net/http"
 
-	"gitee.com/matkurban/openimsdk-tools/apiresp"
-	"gitee.com/matkurban/openimsdk-tools/log"
+	"chat/pkg/common/apiresp"
+	"chat/pkg/common/log"
 	"github.com/gin-gonic/gin"
 	"github.com/livekit/protocol/auth"
 	"github.com/livekit/protocol/webhook"

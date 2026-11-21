@@ -5,7 +5,7 @@ import (
 
 	"chat/internal/api/bot"
 	"chat/pkg/common/config"
-	"gitee.com/matkurban/openimsdk-tools/system/program"
+	"chat/pkg/common/program"
 	"github.com/spf13/cobra"
 )
 

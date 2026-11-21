@@ -9,7 +9,7 @@ import (
 	"chat/pkg/common/imapi"
 	"chat/pkg/common/mctx"
 	"chat/pkg/protocol/bot"
-	"gitee.com/matkurban/openimsdk-tools/errs"
+	"chat/pkg/common/errs"
 	"github.com/openimsdk/protocol/constant"
 	"github.com/sashabaranov/go-openai"
 )

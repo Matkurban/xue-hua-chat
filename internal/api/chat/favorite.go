@@ -5,9 +5,9 @@ import (
 
 	"chat/pkg/common/imapi"
 	"chat/pkg/common/mctx"
-	"gitee.com/matkurban/openimsdk-tools/apiresp"
-	"gitee.com/matkurban/openimsdk-tools/errs"
-	"gitee.com/matkurban/openimsdk-tools/log"
+	"chat/pkg/common/apiresp"
+	"chat/pkg/common/errs"
+	"chat/pkg/common/log"
 	"github.com/gin-gonic/gin"
 )
 

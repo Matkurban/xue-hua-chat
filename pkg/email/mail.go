@@ -5,7 +5,7 @@ import (
 	"context"
 	_ "embed"
 	"fmt"
-	"gitee.com/matkurban/openimsdk-tools/errs"
+	"chat/pkg/common/errs"
 	"gopkg.in/gomail.v2"
 	"html/template"
 	"time"

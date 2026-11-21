@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"chat/pkg/common/constant"
-	"gitee.com/matkurban/openimsdk-tools/errs"
+	"chat/pkg/common/errs"
 	"github.com/go-viper/mapstructure/v2"
 	"github.com/spf13/viper"
 )

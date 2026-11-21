@@ -5,9 +5,9 @@ import (
 
 	"chat/pkg/common/db/model/bot"
 	tablebot "chat/pkg/common/db/table/bot"
-	"gitee.com/matkurban/openimsdk-tools/db/mongoutil"
-	"gitee.com/matkurban/openimsdk-tools/db/pagination"
-	"gitee.com/matkurban/openimsdk-tools/db/tx"
+	"chat/pkg/common/db/mongoutil"
+	"chat/pkg/common/db/pagination"
+	"chat/pkg/common/db/tx"
 )
 
 type BotDatabase interface {

@@ -1,7 +1,7 @@
 package chat
 
 import (
-	"gitee.com/matkurban/openimsdk-tools/errs"
+	"chat/pkg/common/errs"
 )
 
 type ScheduleInviteesReq struct {

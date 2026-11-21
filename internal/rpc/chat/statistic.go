@@ -6,7 +6,7 @@ import (
 
 	"chat/pkg/common/statsday"
 	"chat/pkg/protocol/chat"
-	"gitee.com/matkurban/openimsdk-tools/errs"
+	"chat/pkg/common/errs"
 )
 
 // fillDays zero-fills Asia/Shanghai days; see statsday.FillDays.

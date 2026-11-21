@@ -4,9 +4,9 @@ import (
 	"context"
 	"time"
 
-	"gitee.com/matkurban/openimsdk-tools/utils/stringutil"
+	"chat/pkg/util/stringutil"
 
-	"gitee.com/matkurban/openimsdk-tools/errs"
+	"chat/pkg/common/errs"
 	"github.com/redis/go-redis/v9"
 )
 

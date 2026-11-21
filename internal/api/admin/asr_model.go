@@ -4,8 +4,8 @@ import (
 	"time"
 
 	admindb "chat/pkg/common/db/table/admin"
-	"gitee.com/matkurban/openimsdk-tools/apiresp"
-	"gitee.com/matkurban/openimsdk-tools/errs"
+	"chat/pkg/common/apiresp"
+	"chat/pkg/common/errs"
 	"github.com/gin-gonic/gin"
 )
 

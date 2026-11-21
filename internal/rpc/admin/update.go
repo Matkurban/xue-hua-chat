@@ -5,7 +5,7 @@ import (
 	"encoding/hex"
 	"time"
 
-	"gitee.com/matkurban/openimsdk-tools/errs"
+	"chat/pkg/common/errs"
 
 	"chat/pkg/protocol/admin"
 )

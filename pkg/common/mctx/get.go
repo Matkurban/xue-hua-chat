@@ -4,9 +4,9 @@ import (
 	"context"
 	"strconv"
 
-	"gitee.com/matkurban/openimsdk-tools/utils/datautil"
+	"chat/pkg/util/datautil"
 
-	"gitee.com/matkurban/openimsdk-tools/errs"
+	"chat/pkg/common/errs"
 	constantpb "github.com/openimsdk/protocol/constant"
 
 	"chat/pkg/common/constant"

@@ -2,7 +2,7 @@ package chat
 
 import (
 	admindb "chat/pkg/common/db/table/admin"
-	"gitee.com/matkurban/openimsdk-tools/apiresp"
+	"chat/pkg/common/apiresp"
 	"github.com/gin-gonic/gin"
 )
 

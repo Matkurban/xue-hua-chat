@@ -2,11 +2,12 @@ package chat
 
 import (
 	"context"
+	"regexp"
 	"time"
 
-	"gitee.com/matkurban/openimsdk-tools/db/mongoutil"
-	"gitee.com/matkurban/openimsdk-tools/db/pagination"
-	"gitee.com/matkurban/openimsdk-tools/errs"
+	"chat/pkg/common/db/mongoutil"
+	"chat/pkg/common/db/pagination"
+	"chat/pkg/common/errs"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
@@ -44,6 +45,17 @@ func (o *RedPacket) UpdateStatus(ctx context.Context, packetID string, status in
 		bson.M{"$set": bson.M{"status": status, "update_time": time.Now()}}, false)
 }
 
+func (o *RedPacket) CompareAndUpdateStatus(ctx context.Context, packetID string, fromStatus, toStatus int32) (bool, error) {
+	res, err := o.coll.UpdateOne(ctx,
+		bson.M{"packet_id": packetID, "status": fromStatus},
+		bson.M{"$set": bson.M{"status": toStatus, "update_time": time.Now()}},
+	)
+	if err != nil {
+		return false, errs.WrapMsg(err, "CompareAndUpdateStatus failed")
+	}
+	return res.MatchedCount > 0, nil
+}
+
 func (o *RedPacket) IncrGrabbed(ctx context.Context, packetID string, amount float64) error {
 	_, err := o.coll.UpdateOne(ctx,
 		bson.M{"packet_id": packetID},
@@ -70,9 +82,10 @@ func (o *RedPacket) SearchBySender(ctx context.Context, senderID string, p pagin
 func (o *RedPacket) SearchAll(ctx context.Context, keyword string, p pagination.Pagination) (int64, []*chat.RedPacket, error) {
 	filter := bson.M{}
 	if keyword != "" {
+		quoted := regexp.QuoteMeta(keyword)
 		filter["$or"] = bson.A{
-			bson.M{"packet_id": bson.M{"$regex": keyword}},
-			bson.M{"sender_id": bson.M{"$regex": keyword}},
+			bson.M{"packet_id": bson.M{"$regex": quoted}},
+			bson.M{"sender_id": bson.M{"$regex": quoted}},
 		}
 	}
 	return mongoutil.FindPage[*chat.RedPacket](ctx, o.coll, filter, p,
@@ -116,9 +129,10 @@ func (o *RedPacketGrab) TakeByGrabber(ctx context.Context, packetID string, grab
 func (o *RedPacketGrab) SearchAll(ctx context.Context, keyword string, p pagination.Pagination) (int64, []*chat.RedPacketGrab, error) {
 	filter := bson.M{}
 	if keyword != "" {
+		quoted := regexp.QuoteMeta(keyword)
 		filter["$or"] = bson.A{
-			bson.M{"packet_id": bson.M{"$regex": keyword}},
-			bson.M{"grabber_id": bson.M{"$regex": keyword}},
+			bson.M{"packet_id": bson.M{"$regex": quoted}},
+			bson.M{"grabber_id": bson.M{"$regex": quoted}},
 		}
 	}
 	return mongoutil.FindPage[*chat.RedPacketGrab](ctx, o.coll, filter, p,

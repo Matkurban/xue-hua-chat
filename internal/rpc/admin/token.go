@@ -7,7 +7,7 @@ import (
 
 	"chat/pkg/eerrs"
 	adminpb "chat/pkg/protocol/admin"
-	"gitee.com/matkurban/openimsdk-tools/log"
+	"chat/pkg/common/log"
 )
 
 func (o *adminServer) CreateToken(ctx context.Context, req *adminpb.CreateTokenReq) (*adminpb.CreateTokenResp, error) {

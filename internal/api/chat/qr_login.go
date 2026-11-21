@@ -12,16 +12,17 @@ import (
 	"chat/pkg/common/mctx"
 	"chat/pkg/common/qrlogin"
 	"chat/pkg/protocol/admin"
-	"gitee.com/matkurban/openimsdk-tools/apiresp"
-	"gitee.com/matkurban/openimsdk-tools/errs"
-	"gitee.com/matkurban/openimsdk-tools/log"
+	"chat/pkg/common/apiresp"
+	"chat/pkg/common/errs"
+	"chat/pkg/common/log"
 	"github.com/gin-gonic/gin"
 	constantpb "github.com/openimsdk/protocol/constant"
 )
 
 type qrCreateLimiter struct {
-	mu      sync.Mutex
-	entries map[string][]time.Time
+	mu          sync.Mutex
+	entries     map[string][]time.Time
+	lastCleanup time.Time
 }
 
 func newQrCreateLimiter() *qrCreateLimiter {
@@ -33,6 +34,23 @@ func (l *qrCreateLimiter) allow(key string, limit int, window time.Duration) boo
 	defer l.mu.Unlock()
 	now := time.Now()
 	cutoff := now.Add(-window)
+	// 定期清理过期 key，防止按 sessionID / IP 限流导致 map 无限增长
+	if len(l.entries) > 1024 && now.Sub(l.lastCleanup) > window {
+		for k, ts := range l.entries {
+			keep := ts[:0]
+			for _, t := range ts {
+				if t.After(cutoff) {
+					keep = append(keep, t)
+				}
+			}
+			if len(keep) == 0 {
+				delete(l.entries, k)
+			} else {
+				l.entries[k] = keep
+			}
+		}
+		l.lastCleanup = now
+	}
 	times := l.entries[key]
 	filtered := times[:0]
 	for _, t := range times {
@@ -72,12 +90,7 @@ func (o *Api) QrLoginCreate(c *gin.Context) {
 		apiresp.GinError(c, errs.ErrArgs.WrapMsg("too many qr login requests"))
 		return
 	}
-	_, sessionID, err := o.QrLoginManager.Create(c, req.Platform, req.DeviceID, ip)
-	if err != nil {
-		apiresp.GinError(c, err)
-		return
-	}
-	session, err := o.QrLoginManager.Get(c, sessionID)
+	session, sessionID, err := o.QrLoginManager.Create(c, req.Platform, req.DeviceID, ip)
 	if err != nil {
 		apiresp.GinError(c, err)
 		return

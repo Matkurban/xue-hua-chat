@@ -4,9 +4,9 @@ import (
 	"context"
 	"time"
 
-	"gitee.com/matkurban/openimsdk-tools/utils/datautil"
+	"chat/pkg/util/datautil"
 
-	"gitee.com/matkurban/openimsdk-tools/errs"
+	"chat/pkg/common/errs"
 
 	admindb "chat/pkg/common/db/table/admin"
 	"chat/pkg/common/mctx"

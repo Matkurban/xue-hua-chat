@@ -3,11 +3,12 @@ package chat
 import (
 	"context"
 	"math"
+	"regexp"
 	"time"
 
-	"gitee.com/matkurban/openimsdk-tools/db/mongoutil"
-	"gitee.com/matkurban/openimsdk-tools/db/pagination"
-	"gitee.com/matkurban/openimsdk-tools/errs"
+	"chat/pkg/common/db/mongoutil"
+	"chat/pkg/common/db/pagination"
+	"chat/pkg/common/errs"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
@@ -106,7 +107,7 @@ func (o *UserPoints) AdminAdjust(ctx context.Context, userID string, amount floa
 func (o *UserPoints) SearchAll(ctx context.Context, keyword string, p pagination.Pagination) (int64, []*chat.UserPoints, error) {
 	filter := bson.M{}
 	if keyword != "" {
-		filter["user_id"] = bson.M{"$regex": keyword}
+		filter["user_id"] = bson.M{"$regex": regexp.QuoteMeta(keyword)}
 	}
 	return mongoutil.FindPage[*chat.UserPoints](ctx, o.coll, filter, p,
 		options.Find().SetSort(bson.D{{Key: "balance", Value: -1}}))
@@ -144,9 +145,10 @@ func (o *PointsTransaction) FindByUser(ctx context.Context, userID string, p pag
 func (o *PointsTransaction) SearchAll(ctx context.Context, keyword string, p pagination.Pagination) (int64, []*chat.PointsTransaction, error) {
 	filter := bson.M{}
 	if keyword != "" {
+		quoted := regexp.QuoteMeta(keyword)
 		filter["$or"] = bson.A{
-			bson.M{"user_id": bson.M{"$regex": keyword}},
-			bson.M{"related_id": bson.M{"$regex": keyword}},
+			bson.M{"user_id": bson.M{"$regex": quoted}},
+			bson.M{"related_id": bson.M{"$regex": quoted}},
 		}
 	}
 	return mongoutil.FindPage[*chat.PointsTransaction](ctx, o.coll, filter, p,
@@ -182,9 +184,10 @@ func (o *PointsTransaction) SearchUserFiltered(ctx context.Context, userID strin
 		filter["create_time"] = timeFilter
 	}
 	if keyword != "" {
+		quoted := regexp.QuoteMeta(keyword)
 		filter["$or"] = bson.A{
-			bson.M{"related_id": bson.M{"$regex": keyword}},
-			bson.M{"remark": bson.M{"$regex": keyword}},
+			bson.M{"related_id": bson.M{"$regex": quoted}},
+			bson.M{"remark": bson.M{"$regex": quoted}},
 		}
 	}
 	return mongoutil.FindPage[*chat.PointsTransaction](ctx, o.coll, filter, p,

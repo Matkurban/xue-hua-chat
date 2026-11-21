@@ -1,6 +1,6 @@
 package eerrs
 
-import "gitee.com/matkurban/openimsdk-tools/errs"
+import "chat/pkg/common/errs"
 
 var (
 	ErrPassword                 = errs.NewCodeError(20001, "PasswordError")

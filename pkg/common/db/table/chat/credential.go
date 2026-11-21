@@ -2,7 +2,7 @@ package chat
 
 import (
 	"context"
-	"gitee.com/matkurban/openimsdk-tools/db/pagination"
+	"chat/pkg/common/db/pagination"
 )
 
 type Credential struct {

@@ -3,8 +3,8 @@ package chat
 import (
 	"chat/pkg/common/constant"
 	"chat/pkg/common/mctx"
-	"gitee.com/matkurban/openimsdk-tools/apiresp"
-	"gitee.com/matkurban/openimsdk-tools/errs"
+	"chat/pkg/common/apiresp"
+	"chat/pkg/common/errs"
 	"github.com/gin-gonic/gin"
 )
 

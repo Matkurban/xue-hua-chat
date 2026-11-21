@@ -5,8 +5,8 @@ import (
 
 	"chat/pkg/common/constant"
 	"chat/pkg/protocol/admin"
-	"gitee.com/matkurban/openimsdk-tools/apiresp"
-	"gitee.com/matkurban/openimsdk-tools/errs"
+	"chat/pkg/common/apiresp"
+	"chat/pkg/common/errs"
 	"github.com/gin-gonic/gin"
 	constantpb "github.com/openimsdk/protocol/constant"
 )
@@ -115,11 +115,14 @@ func (o *MW) CheckUser(c *gin.Context) {
 
 func (o *MW) CheckAdminOrNil(c *gin.Context) {
 	defer c.Next()
-	userID, userType, _, err := o.parseToken(c)
+	userID, userType, token, err := o.parseToken(c)
 	if err != nil {
 		return
 	}
 	if userType == constant.AdminUser {
+		if err := o.isValidToken(c, userID, token); err != nil {
+			return
+		}
 		o.setToken(c, userID, constant.AdminUser)
 	}
 }

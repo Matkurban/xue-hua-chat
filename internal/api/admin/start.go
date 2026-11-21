@@ -27,16 +27,16 @@ import (
 	"chat/pkg/common/storage"
 	adminclient "chat/pkg/protocol/admin"
 	chatclient "chat/pkg/protocol/chat"
-	"gitee.com/matkurban/openimsdk-tools/db/mongoutil"
-	"gitee.com/matkurban/openimsdk-tools/db/redisutil"
-	"gitee.com/matkurban/openimsdk-tools/discovery"
-	"gitee.com/matkurban/openimsdk-tools/discovery/etcd"
-	"gitee.com/matkurban/openimsdk-tools/errs"
-	"gitee.com/matkurban/openimsdk-tools/log"
-	"gitee.com/matkurban/openimsdk-tools/mw"
-	"gitee.com/matkurban/openimsdk-tools/system/program"
-	"gitee.com/matkurban/openimsdk-tools/utils/datautil"
-	"gitee.com/matkurban/openimsdk-tools/utils/runtimeenv"
+	"chat/pkg/common/db/mongoutil"
+	"chat/pkg/common/db/redisutil"
+	"chat/pkg/common/discovery"
+	"chat/pkg/common/discovery/etcd"
+	"chat/pkg/common/errs"
+	"chat/pkg/common/log"
+	"chat/pkg/common/mw"
+	"chat/pkg/common/program"
+	"chat/pkg/util/datautil"
+	"chat/pkg/util/runtimeenv"
 	"github.com/gin-gonic/gin"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"google.golang.org/grpc"
@@ -157,7 +157,7 @@ func Start(ctx context.Context, index int, config *Config) error {
 		netDone = make(chan struct{}, 1)
 		netErr  error
 	)
-	server := http.Server{Addr: fmt.Sprintf(":%d", apiPort), Handler: engine}
+	server := http.Server{Addr: fmt.Sprintf(":%d", apiPort), Handler: engine, ReadHeaderTimeout: 10 * time.Second}
 	go func() {
 		err = server.ListenAndServe()
 		if err != nil && !errors.Is(err, http.ErrServerClosed) {

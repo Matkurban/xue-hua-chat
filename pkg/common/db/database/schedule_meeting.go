@@ -3,8 +3,8 @@ package database
 import (
 	"context"
 
-	"gitee.com/matkurban/openimsdk-tools/db/mongoutil"
-	"gitee.com/matkurban/openimsdk-tools/db/pagination"
+	"chat/pkg/common/db/mongoutil"
+	"chat/pkg/common/db/pagination"
 
 	chatmodel "chat/pkg/common/db/model/chat"
 	chatdb "chat/pkg/common/db/table/chat"

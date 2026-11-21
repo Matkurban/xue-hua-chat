@@ -1,6 +1,6 @@
 package chat
 
-import "gitee.com/matkurban/openimsdk-tools/errs"
+import "chat/pkg/common/errs"
 
 // ---------------------------------------------------------------------------
 // Meeting / Call Management

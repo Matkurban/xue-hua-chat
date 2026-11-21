@@ -2,8 +2,9 @@ package chat
 
 import (
 	"context"
+	"crypto/subtle"
 
-	"gitee.com/matkurban/openimsdk-tools/errs"
+	"chat/pkg/common/errs"
 
 	"chat/pkg/common/constant"
 	"chat/pkg/common/mctx"
@@ -78,7 +79,7 @@ func (o *chatSvr) ChangePassword(ctx context.Context, req *chat.ChangePasswordRe
 		return nil, err
 	}
 	if userType != constant.AdminUser {
-		if user.Password != req.CurrentPassword {
+		if subtle.ConstantTimeCompare([]byte(user.Password), []byte(req.CurrentPassword)) != 1 {
 			return nil, errs.ErrNoPermission.WrapMsg("current password is wrong")
 		}
 	}

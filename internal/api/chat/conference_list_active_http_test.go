@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	chatmw "chat/internal/api/mw"
-	"gitee.com/matkurban/openimsdk-tools/errs"
+	"chat/pkg/common/errs"
 	"github.com/gin-gonic/gin"
 )
 

@@ -1,12 +1,13 @@
 package chat
 
 import (
+	"crypto/subtle"
 	"time"
 
 	"chat/pkg/common/db/database"
 	"chat/pkg/common/mctx"
-	"gitee.com/matkurban/openimsdk-tools/apiresp"
-	"gitee.com/matkurban/openimsdk-tools/errs"
+	"chat/pkg/common/apiresp"
+	"chat/pkg/common/errs"
 	"github.com/gin-gonic/gin"
 )
 
@@ -72,8 +73,8 @@ func (o *PaymentPasswordApi) SetPaymentPassword(c *gin.Context) {
 		return
 	}
 
-	// 验证登录密码
-	if account.Password != req.LoginPassword {
+	// 验证登录密码（常量时间比较，防止计时侧信道攻击）
+	if subtle.ConstantTimeCompare([]byte(account.Password), []byte(req.LoginPassword)) != 1 {
 		apiresp.GinError(c, errs.ErrNoPermission.WrapMsg("login password is wrong"))
 		return
 	}
@@ -126,8 +127,8 @@ func (o *PaymentPasswordApi) ChangePaymentPassword(c *gin.Context) {
 		return
 	}
 
-	// 验证当前支付密码
-	if account.PaymentPassword != req.CurrentPaymentPassword {
+	// 验证当前支付密码（常量时间比较）
+	if subtle.ConstantTimeCompare([]byte(account.PaymentPassword), []byte(req.CurrentPaymentPassword)) != 1 {
 		apiresp.GinError(c, errs.ErrNoPermission.WrapMsg("current payment password is wrong"))
 		return
 	}
@@ -167,7 +168,7 @@ func (o *PaymentPasswordApi) VerifyPaymentPassword(c *gin.Context) {
 		return
 	}
 
-	if account.PaymentPassword != req.PaymentPassword {
+	if subtle.ConstantTimeCompare([]byte(account.PaymentPassword), []byte(req.PaymentPassword)) != 1 {
 		apiresp.GinError(c, errs.ErrNoPermission.WrapMsg("payment password is wrong"))
 		return
 	}

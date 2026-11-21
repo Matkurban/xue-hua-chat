@@ -2,18 +2,19 @@ package chat
 
 import (
 	"context"
+	"math"
 	"time"
 
 	rpCache "chat/pkg/common/db/cache"
 	"chat/pkg/common/db/database"
 	chatdb "chat/pkg/common/db/table/chat"
 	"chat/pkg/common/imapi"
-	"gitee.com/matkurban/openimsdk-tools/log"
+	"chat/pkg/common/log"
 	"github.com/google/uuid"
 )
 
 // startExpireRefundLoop 每5分钟扫描过期红包，退还未领完积分给发包人
-func startExpireRefundLoop(ctx context.Context, db database.RedPacketDatabaseInterface, cache *rpCache.RedPacketCache, im imapi.CallerInterface) {
+func startExpireRefundLoop(ctx context.Context, db database.RedPacketDatabaseInterface, cache *rpCache.RedPacketCache, im imapi.CallerInterface, imUserID string) {
 	ticker := time.NewTicker(5 * time.Minute)
 	defer ticker.Stop()
 	for {
@@ -21,19 +22,19 @@ func startExpireRefundLoop(ctx context.Context, db database.RedPacketDatabaseInt
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			processExpiredRedPackets(ctx, db, cache, im)
+			processExpiredRedPackets(ctx, db, cache, im, imUserID)
 		}
 	}
 }
 
-func processExpiredRedPackets(ctx context.Context, db database.RedPacketDatabaseInterface, cache *rpCache.RedPacketCache, im imapi.CallerInterface) {
+func processExpiredRedPackets(ctx context.Context, db database.RedPacketDatabaseInterface, cache *rpCache.RedPacketCache, im imapi.CallerInterface, imUserID string) {
 	expired, err := db.FindExpiredRedPackets(ctx, time.Now())
 	if err != nil {
 		log.ZError(ctx, "FindExpiredRedPackets error", err)
 		return
 	}
 	for _, packet := range expired {
-		refund := packet.TotalAmount - packet.GrabbedAmount
+		refund := math.Round((packet.TotalAmount-packet.GrabbedAmount)*100) / 100
 		if refund <= 0 {
 			// 无需退款，直接标记过期
 			_ = db.MarkRedPacketExpired(ctx, packet.PacketID)

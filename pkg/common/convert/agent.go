@@ -5,7 +5,7 @@ import (
 
 	"chat/pkg/common/db/table/bot"
 	pbbot "chat/pkg/protocol/bot"
-	"gitee.com/matkurban/openimsdk-tools/utils/datautil"
+	"chat/pkg/util/datautil"
 )
 
 func DB2PBAgent(a *bot.Agent) *pbbot.Agent {

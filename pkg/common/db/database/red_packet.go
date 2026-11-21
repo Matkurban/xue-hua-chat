@@ -4,9 +4,9 @@ import (
 	"context"
 	"time"
 
-	"gitee.com/matkurban/openimsdk-tools/db/mongoutil"
-	"gitee.com/matkurban/openimsdk-tools/db/pagination"
-	"gitee.com/matkurban/openimsdk-tools/db/tx"
+	"chat/pkg/common/db/mongoutil"
+	"chat/pkg/common/db/pagination"
+	"chat/pkg/common/db/tx"
 
 	chatmodel "chat/pkg/common/db/model/chat"
 	chatdb "chat/pkg/common/db/table/chat"
@@ -167,16 +167,20 @@ func (o *RedPacketDatabase) GrabRedPacketTx(ctx context.Context, packet *chatdb.
 	})
 }
 
-// RefundRedPacketTx 退款事务：退积分给发包人 + 写流水 + 标记红包已过期
+// RefundRedPacketTx 退款事务：先原子将活跃红包置为已过期，再退积分给发包人 + 写流水，防止多实例并发重复退款
 func (o *RedPacketDatabase) RefundRedPacketTx(ctx context.Context, packetID string, senderID string, refundAmount float64, refundTx *chatdb.PointsTransaction) error {
 	return o.tx.Transaction(ctx, func(ctx context.Context) error {
+		updated, err := o.redPacket.CompareAndUpdateStatus(ctx, packetID, chatdb.RedPacketStatusActive, chatdb.RedPacketStatusExpired)
+		if err != nil {
+			return err
+		}
+		if !updated {
+			return nil
+		}
 		if err := o.userPoints.IncrBalance(ctx, senderID, refundAmount, false); err != nil {
 			return err
 		}
-		if err := o.pointsTx.Create(ctx, refundTx); err != nil {
-			return err
-		}
-		return o.redPacket.UpdateStatus(ctx, packetID, chatdb.RedPacketStatusExpired)
+		return o.pointsTx.Create(ctx, refundTx)
 	})
 }
 

@@ -3,9 +3,9 @@ package chat
 import (
 	"context"
 
-	"gitee.com/matkurban/openimsdk-tools/db/mongoutil"
-	"gitee.com/matkurban/openimsdk-tools/db/pagination"
-	"gitee.com/matkurban/openimsdk-tools/errs"
+	"chat/pkg/common/db/mongoutil"
+	"chat/pkg/common/db/pagination"
+	"chat/pkg/common/errs"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"

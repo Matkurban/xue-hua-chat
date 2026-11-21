@@ -11,9 +11,9 @@ import (
 	"chat/pkg/eerrs"
 	"chat/pkg/protocol/chat"
 	"chat/pkg/protocol/common"
-	"gitee.com/matkurban/openimsdk-tools/errs"
-	"gitee.com/matkurban/openimsdk-tools/utils/datautil"
-	"gitee.com/matkurban/openimsdk-tools/utils/stringutil"
+	"chat/pkg/common/errs"
+	"chat/pkg/util/datautil"
+	"chat/pkg/util/stringutil"
 )
 
 func DbToPbAttribute(attribute *table.Attribute) *common.UserPublicInfo {

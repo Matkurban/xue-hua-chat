@@ -23,15 +23,15 @@ import (
 	"chat/pkg/common/rtc"
 	adminclient "chat/pkg/protocol/admin"
 	chatclient "chat/pkg/protocol/chat"
-	"gitee.com/matkurban/openimsdk-tools/db/mongoutil"
-	"gitee.com/matkurban/openimsdk-tools/db/redisutil"
-	"gitee.com/matkurban/openimsdk-tools/discovery/etcd"
-	"gitee.com/matkurban/openimsdk-tools/errs"
-	"gitee.com/matkurban/openimsdk-tools/log"
-	"gitee.com/matkurban/openimsdk-tools/mw"
-	"gitee.com/matkurban/openimsdk-tools/system/program"
-	"gitee.com/matkurban/openimsdk-tools/utils/datautil"
-	"gitee.com/matkurban/openimsdk-tools/utils/runtimeenv"
+	"chat/pkg/common/db/mongoutil"
+	"chat/pkg/common/db/redisutil"
+	"chat/pkg/common/discovery/etcd"
+	"chat/pkg/common/errs"
+	"chat/pkg/common/log"
+	"chat/pkg/common/mw"
+	"chat/pkg/common/program"
+	"chat/pkg/util/datautil"
+	"chat/pkg/util/runtimeenv"
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
 	"google.golang.org/grpc"
@@ -135,15 +135,14 @@ func Start(ctx context.Context, index int, cfg *Config) error {
 	if err == nil {
 		rpDB, dbErr := database.NewRedPacketDatabase(mgoCli)
 		if dbErr == nil {
-			rdb, rdbErr := redisutil.NewRedisClient(ctx, cfg.Redis.Build())
 			var rpCacheSvc *rpCache.RedPacketCache
-			if rdbErr == nil {
-				rpCacheSvc = rpCache.NewRedPacketCache(rdb)
+			if sharedRdb != nil {
+				rpCacheSvc = rpCache.NewRedPacketCache(sharedRdb)
 			}
 			rpApi := &RedPacketApi{db: rpDB, cache: rpCacheSvc, im: im, imUserID: cfg.Share.Server.AdminUserID}
 			adminApi.RedPacket = rpApi
 			// 启动过期红包退款后台 goroutine（每5分钟扫描一次）
-			go startExpireRefundLoop(ctx, rpDB, rpCacheSvc, im)
+			go startExpireRefundLoop(ctx, rpDB, rpCacheSvc, im, cfg.Share.Server.AdminUserID)
 		}
 		// 初始化支付密码 API（使用 ChatDatabase）
 		chatDB, chatDBErr := database.NewChatDatabase(mgoCli)
@@ -209,7 +208,7 @@ func Start(ctx context.Context, index int, cfg *Config) error {
 		netDone = make(chan struct{}, 1)
 		netErr  error
 	)
-	server := http.Server{Addr: fmt.Sprintf(":%d", apiPort), Handler: engine}
+	server := http.Server{Addr: fmt.Sprintf(":%d", apiPort), Handler: engine, ReadHeaderTimeout: 10 * time.Second}
 	go func() {
 		err = server.ListenAndServe()
 		if err != nil && !errors.Is(err, http.ErrServerClosed) {
@@ -393,25 +392,26 @@ func SetChatRoute(router gin.IRouter, chat *Api, mw *chatmw.MW) {
 	applicationGroup := router.Group("application")
 	applicationGroup.POST("/latest_version", chat.LatestApplicationVersion)
 
-	// 红包 & 积分（用户端）
-	redPacket := router.Group("/red_packet", mw.CheckToken)
-	redPacket.POST("/send", chat.RedPacket.SendRedPacket)
-	redPacket.POST("/grab", chat.RedPacket.GrabRedPacket)
-	redPacket.POST("/detail", chat.RedPacket.GetRedPacketDetail)
+	// 红包 & 积分（用户端与管理员端，防止 MongoDB 未就绪时 nil 指针 panic）
+	if chat.RedPacket != nil {
+		redPacket := router.Group("/red_packet", mw.CheckToken)
+		redPacket.POST("/send", chat.RedPacket.SendRedPacket)
+		redPacket.POST("/grab", chat.RedPacket.GrabRedPacket)
+		redPacket.POST("/detail", chat.RedPacket.GetRedPacketDetail)
 
-	points := router.Group("/points", mw.CheckToken)
-	points.POST("/balance", chat.RedPacket.GetPointsBalance)
-	points.POST("/transactions", chat.RedPacket.GetPointsTransactions)
+		points := router.Group("/points", mw.CheckToken)
+		points.POST("/balance", chat.RedPacket.GetPointsBalance)
+		points.POST("/transactions", chat.RedPacket.GetPointsTransactions)
 
-	// 红包 & 积分（管理员端）
-	adminPoints := router.Group("/admin/points", mw.CheckAdmin)
-	adminPoints.POST("/adjust", chat.RedPacket.AdminAdjustPoints)
-	adminPoints.POST("/list", chat.RedPacket.AdminListPoints)
-	adminPoints.POST("/transactions", chat.RedPacket.AdminListTransactions)
+		adminPoints := router.Group("/admin/points", mw.CheckAdmin)
+		adminPoints.POST("/adjust", chat.RedPacket.AdminAdjustPoints)
+		adminPoints.POST("/list", chat.RedPacket.AdminListPoints)
+		adminPoints.POST("/transactions", chat.RedPacket.AdminListTransactions)
 
-	adminRedPacket := router.Group("/admin/red_packets", mw.CheckAdmin)
-	adminRedPacket.POST("/list", chat.RedPacket.AdminListRedPackets)
-	adminRedPacket.POST("/grabs", chat.RedPacket.AdminListGrabs)
+		adminRedPacket := router.Group("/admin/red_packets", mw.CheckAdmin)
+		adminRedPacket.POST("/list", chat.RedPacket.AdminListRedPackets)
+		adminRedPacket.POST("/grabs", chat.RedPacket.AdminListGrabs)
+	}
 
 	// 会议管理（管理员端：全部进行中列表 + 调整显示人数 + 强制结束）——走 chat-api 的 ConferenceManager，
 	// 与进/退会共用同一条 conference_sync 推送路径。路径按作用命名，避开网关 /admin/ 前缀。

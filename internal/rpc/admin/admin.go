@@ -6,9 +6,9 @@ import (
 	"math/rand"
 	"time"
 
-	"gitee.com/matkurban/openimsdk-tools/errs"
-	"gitee.com/matkurban/openimsdk-tools/mcontext"
-	"gitee.com/matkurban/openimsdk-tools/utils/datautil"
+	"chat/pkg/common/errs"
+	"chat/pkg/common/mcontext"
+	"chat/pkg/util/datautil"
 
 	"chat/pkg/common/constant"
 	"chat/pkg/common/db/dbutil"

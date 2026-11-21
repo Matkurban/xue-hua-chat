@@ -1,7 +1,7 @@
 package dbutil
 
 import (
-	"gitee.com/matkurban/openimsdk-tools/errs"
+	"chat/pkg/common/errs"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 

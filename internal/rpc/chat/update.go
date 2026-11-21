@@ -5,7 +5,7 @@ import (
 	chatdb "chat/pkg/common/db/table/chat"
 	"time"
 
-	"gitee.com/matkurban/openimsdk-tools/errs"
+	"chat/pkg/common/errs"
 
 	"chat/pkg/protocol/chat"
 )

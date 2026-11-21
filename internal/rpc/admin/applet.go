@@ -5,9 +5,9 @@ import (
 	"strings"
 	"time"
 
-	"gitee.com/matkurban/openimsdk-tools/utils/datautil"
+	"chat/pkg/util/datautil"
 
-	"gitee.com/matkurban/openimsdk-tools/errs"
+	"chat/pkg/common/errs"
 	"github.com/google/uuid"
 
 	"chat/pkg/common/constant"

@@ -8,7 +8,7 @@ import (
 	"chat/pkg/common/constant"
 	"chat/pkg/eerrs"
 	"chat/pkg/protocol/chat"
-	"gitee.com/matkurban/openimsdk-tools/errs"
+	"chat/pkg/common/errs"
 	constantpb "github.com/openimsdk/protocol/constant"
 )
 

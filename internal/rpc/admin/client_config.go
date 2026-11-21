@@ -3,7 +3,7 @@ package admin
 import (
 	"context"
 
-	"gitee.com/matkurban/openimsdk-tools/errs"
+	"chat/pkg/common/errs"
 
 	"chat/pkg/common/mctx"
 	"chat/pkg/protocol/admin"

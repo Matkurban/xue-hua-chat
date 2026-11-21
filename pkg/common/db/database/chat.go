@@ -4,9 +4,9 @@ import (
 	"context"
 	"time"
 
-	"gitee.com/matkurban/openimsdk-tools/db/mongoutil"
-	"gitee.com/matkurban/openimsdk-tools/db/pagination"
-	"gitee.com/matkurban/openimsdk-tools/db/tx"
+	"chat/pkg/common/db/mongoutil"
+	"chat/pkg/common/db/pagination"
+	"chat/pkg/common/db/tx"
 
 	"chat/pkg/common/constant"
 	admindb "chat/pkg/common/db/model/admin"

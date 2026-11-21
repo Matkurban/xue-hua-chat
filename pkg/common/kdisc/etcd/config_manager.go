@@ -8,9 +8,9 @@ import (
 	"sync"
 	"syscall"
 
-	"gitee.com/matkurban/openimsdk-tools/errs"
-	"gitee.com/matkurban/openimsdk-tools/log"
-	"gitee.com/matkurban/openimsdk-tools/utils/datautil"
+	"chat/pkg/common/errs"
+	"chat/pkg/common/log"
+	"chat/pkg/util/datautil"
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
 

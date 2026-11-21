@@ -2,7 +2,7 @@ package admin
 
 import (
 	"context"
-	"gitee.com/matkurban/openimsdk-tools/utils/datautil"
+	"chat/pkg/util/datautil"
 	"github.com/openimsdk/protocol/wrapperspb"
 	"strings"
 	"time"
@@ -12,8 +12,8 @@ import (
 	"chat/pkg/common/mctx"
 	"chat/pkg/protocol/admin"
 	"chat/pkg/protocol/chat"
-	"gitee.com/matkurban/openimsdk-tools/errs"
-	"gitee.com/matkurban/openimsdk-tools/mcontext"
+	"chat/pkg/common/errs"
+	"chat/pkg/common/mcontext"
 )
 
 func (o *adminServer) CancellationUser(ctx context.Context, req *admin.CancellationUserReq) (*admin.CancellationUserResp, error) {

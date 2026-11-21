@@ -4,7 +4,7 @@ import (
 	"chat/pkg/eerrs"
 	"context"
 	"errors"
-	"gitee.com/matkurban/openimsdk-tools/utils/stringutil"
+	"chat/pkg/util/stringutil"
 	"github.com/openimsdk/protocol/wrapperspb"
 	"strconv"
 	"strings"
@@ -12,8 +12,8 @@ import (
 
 	"chat/pkg/common/db/dbutil"
 	chatdb "chat/pkg/common/db/table/chat"
-	"gitee.com/matkurban/openimsdk-tools/log"
-	"gitee.com/matkurban/openimsdk-tools/mcontext"
+	"chat/pkg/common/log"
+	"chat/pkg/common/mcontext"
 	constantpb "github.com/openimsdk/protocol/constant"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 
@@ -21,7 +21,7 @@ import (
 	"chat/pkg/common/mctx"
 	"chat/pkg/protocol/chat"
 	"chat/pkg/protocol/common"
-	"gitee.com/matkurban/openimsdk-tools/errs"
+	"chat/pkg/common/errs"
 )
 
 func (o *chatSvr) checkUpdateInfo(ctx context.Context, req *chat.UpdateUserInfoReq) error {

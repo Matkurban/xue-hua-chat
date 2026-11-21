@@ -2,8 +2,8 @@ package admin
 
 import (
 	"chat/pkg/common/constant"
-	"gitee.com/matkurban/openimsdk-tools/errs"
-	"gitee.com/matkurban/openimsdk-tools/utils/datautil"
+	"chat/pkg/common/errs"
+	"chat/pkg/util/datautil"
 )
 
 func (x *LoginReq) Check() error {

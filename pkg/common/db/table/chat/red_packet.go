@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"gitee.com/matkurban/openimsdk-tools/db/pagination"
+	"chat/pkg/common/db/pagination"
 )
 
 // 红包类型
@@ -60,6 +60,7 @@ type RedPacketInterface interface {
 	Create(ctx context.Context, packet *RedPacket) error
 	TakeByPacketID(ctx context.Context, packetID string) (*RedPacket, error)
 	UpdateStatus(ctx context.Context, packetID string, status int32) error
+	CompareAndUpdateStatus(ctx context.Context, packetID string, fromStatus, toStatus int32) (bool, error)
 	IncrGrabbed(ctx context.Context, packetID string, amount float64) error
 	FindExpiredActive(ctx context.Context, before time.Time) ([]*RedPacket, error)
 	SearchBySender(ctx context.Context, senderID string, pagination pagination.Pagination) (int64, []*RedPacket, error)

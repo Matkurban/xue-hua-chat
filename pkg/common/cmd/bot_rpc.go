@@ -6,7 +6,7 @@ import (
 	"chat/internal/rpc/bot"
 	"chat/pkg/common/config"
 	"chat/pkg/common/startrpc"
-	"gitee.com/matkurban/openimsdk-tools/system/program"
+	"chat/pkg/common/program"
 	"github.com/spf13/cobra"
 )
 

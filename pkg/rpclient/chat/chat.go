@@ -5,8 +5,8 @@ import (
 
 	"chat/pkg/protocol/chat"
 	"chat/pkg/protocol/common"
-	"gitee.com/matkurban/openimsdk-tools/errs"
-	"gitee.com/matkurban/openimsdk-tools/utils/datautil"
+	"chat/pkg/common/errs"
+	"chat/pkg/util/datautil"
 )
 
 func NewChatClient(client chat.ChatClient) *ChatClient {

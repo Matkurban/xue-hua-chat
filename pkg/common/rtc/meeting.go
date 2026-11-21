@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"chat/pkg/common/imapi"
-	"gitee.com/matkurban/openimsdk-tools/log"
+	"chat/pkg/common/log"
 	"github.com/google/uuid"
 	"github.com/livekit/protocol/auth"
 	"github.com/livekit/protocol/livekit"
@@ -34,6 +34,7 @@ type MeetingManager struct {
 	adminUserID string
 	eventCh     chan *livekit.WebhookEvent
 	stopCh      chan struct{}
+	stopOnce    sync.Once
 	wg          sync.WaitGroup
 }
 
@@ -61,9 +62,11 @@ func NewMeetingManager(
 	return m
 }
 
-// Stop shuts down background workers.
+// Stop shuts down background workers (idempotent).
 func (m *MeetingManager) Stop() {
-	close(m.stopCh)
+	m.stopOnce.Do(func() {
+		close(m.stopCh)
+	})
 	m.wg.Wait()
 }
 
@@ -126,46 +129,57 @@ func (m *MeetingManager) CreateMeeting(creatorUserID, callType string, inviteeUs
 	return room, token, nil
 }
 
-// JoinMeeting 加入会议房间
+// JoinMeeting 加入会议房间（加房间分布式锁，防止并发加入导致参与者覆盖或超员）
 func (m *MeetingManager) JoinMeeting(roomID, userID string) (string, *MeetingRoom, error) {
 	ctx := context.Background()
 	if err := m.store.clearUserStaleRoom(ctx, userID, roomID); err != nil {
 		return "", nil, err
 	}
 
-	room, ok, err := m.store.GetRoom(ctx, roomID)
+	var (
+		token string
+		room  *MeetingRoom
+	)
+	err := m.store.WithRoomLock(ctx, roomID, func(lockCtx context.Context) error {
+		r, ok, err := m.store.GetRoom(lockCtx, roomID)
+		if err != nil {
+			return err
+		}
+		if !ok {
+			return fmt.Errorf("room %s not found", roomID)
+		}
+
+		if _, exists := r.Participants[userID]; !exists && len(r.Participants) >= MaxParticipants {
+			return fmt.Errorf("room %s is full (max %d)", roomID, MaxParticipants)
+		}
+
+		r.Participants[userID] = &MeetingParticipant{
+			UserID:   userID,
+			JoinTime: time.Now().Unix(),
+		}
+
+		tok, err := m.generateToken(roomID, userID)
+		if err != nil {
+			delete(r.Participants, userID)
+			return fmt.Errorf("generate token error: %w", err)
+		}
+
+		if err := m.store.saveRoom(lockCtx, r); err != nil {
+			delete(r.Participants, userID)
+			return err
+		}
+		if err := m.store.setUserRoom(lockCtx, userID, roomID); err != nil {
+			delete(r.Participants, userID)
+			_ = m.store.saveRoom(lockCtx, r)
+			return err
+		}
+		token = tok
+		room = r
+		return nil
+	})
 	if err != nil {
 		return "", nil, err
 	}
-	if !ok {
-		return "", nil, fmt.Errorf("room %s not found", roomID)
-	}
-
-	if len(room.Participants) >= MaxParticipants {
-		return "", nil, fmt.Errorf("room %s is full (max %d)", roomID, MaxParticipants)
-	}
-
-	room.Participants[userID] = &MeetingParticipant{
-		UserID:   userID,
-		JoinTime: time.Now().Unix(),
-	}
-
-	token, err := m.generateToken(roomID, userID)
-	if err != nil {
-		delete(room.Participants, userID)
-		return "", nil, fmt.Errorf("generate token error: %w", err)
-	}
-
-	if err := m.store.saveRoom(ctx, room); err != nil {
-		delete(room.Participants, userID)
-		return "", nil, err
-	}
-	if err := m.store.setUserRoom(ctx, userID, roomID); err != nil {
-		delete(room.Participants, userID)
-		_ = m.store.saveRoom(ctx, room)
-		return "", nil, err
-	}
-
 	return token, room, nil
 }
 
@@ -214,26 +228,30 @@ func (m *MeetingManager) LeaveMeeting(roomID, userID string) error {
 // EndMeeting 结束会议，返回所有参与者 ID。房间已被回收时按成功处理（幂等）。
 func (m *MeetingManager) EndMeeting(roomID, userID string) ([]string, error) {
 	ctx := context.Background()
-	room, ok, err := m.store.GetRoom(ctx, roomID)
+	var participantIDs []string
+	err := m.store.WithRoomLock(ctx, roomID, func(lockCtx context.Context) error {
+		room, ok, err := m.store.GetRoom(lockCtx, roomID)
+		if err != nil {
+			return err
+		}
+		if !ok {
+			// 房间可能已被 webhook 或清理协程回收；客户端补发的归还不应报错，
+			// 但仍要保证调用者的忙线标记被清掉。
+			_ = m.store.rdb.Del(lockCtx, userKey(userID))
+			return nil
+		}
+
+		if room.CreatorUserID != userID {
+			return fmt.Errorf("only creator can end meeting")
+		}
+
+		participantIDs = make([]string, 0, len(room.Participants))
+		for uid := range room.Participants {
+			participantIDs = append(participantIDs, uid)
+		}
+		return m.store.deleteRoom(lockCtx, room)
+	})
 	if err != nil {
-		return nil, err
-	}
-	if !ok {
-		// 房间可能已被 webhook 或清理协程回收；客户端补发的归还不应报错，
-		// 但仍要保证调用者的忙线标记被清掉。
-		_ = m.store.rdb.Del(ctx, userKey(userID))
-		return nil, nil
-	}
-
-	if room.CreatorUserID != userID {
-		return nil, fmt.Errorf("only creator can end meeting")
-	}
-
-	participantIDs := make([]string, 0, len(room.Participants))
-	for uid := range room.Participants {
-		participantIDs = append(participantIDs, uid)
-	}
-	if err := m.store.deleteRoom(ctx, room); err != nil {
 		return nil, err
 	}
 	return participantIDs, nil

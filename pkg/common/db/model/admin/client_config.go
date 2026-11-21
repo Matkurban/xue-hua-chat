@@ -3,13 +3,13 @@ package admin
 import (
 	"context"
 
-	"gitee.com/matkurban/openimsdk-tools/db/mongoutil"
+	"chat/pkg/common/db/mongoutil"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 
 	"chat/pkg/common/db/table/admin"
-	"gitee.com/matkurban/openimsdk-tools/errs"
+	"chat/pkg/common/errs"
 )
 
 func NewClientConfig(db *mongo.Database) (admin.ClientConfigInterface, error) {

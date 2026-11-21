@@ -1,6 +1,6 @@
 package chat
 
-import "gitee.com/matkurban/openimsdk-tools/db/pagination"
+import "chat/pkg/common/db/pagination"
 
 type simplePage struct {
 	pageNumber int32

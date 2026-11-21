@@ -13,7 +13,7 @@ import (
 
 	"chat/pkg/common/db/table/admin"
 	"chat/pkg/common/imapi"
-	"gitee.com/matkurban/openimsdk-tools/db/pagination"
+	"chat/pkg/common/db/pagination"
 	"github.com/gin-gonic/gin"
 )
 

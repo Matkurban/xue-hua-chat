@@ -1,6 +1,6 @@
 package admin
 
-import "gitee.com/matkurban/openimsdk-tools/utils/datautil"
+import "chat/pkg/util/datautil"
 
 func (x *GetClientConfigResp) ApiFormat() {
 	datautil.InitMap(&x.Config)

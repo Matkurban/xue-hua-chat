@@ -5,7 +5,7 @@ import (
 	"strconv"
 
 	"chat/pkg/common/constant"
-	"gitee.com/matkurban/openimsdk-tools/errs"
+	"chat/pkg/common/errs"
 	constantpb "github.com/openimsdk/protocol/constant"
 )
 

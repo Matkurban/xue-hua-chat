@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"gitee.com/matkurban/openimsdk-tools/db/pagination"
+	"chat/pkg/common/db/pagination"
 )
 
 type LimitUserLoginIP struct {

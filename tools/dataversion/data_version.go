@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"time"
 
-	"gitee.com/matkurban/openimsdk-tools/db/mongoutil"
+	"chat/pkg/common/db/mongoutil"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"

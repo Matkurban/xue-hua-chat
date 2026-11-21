@@ -4,8 +4,8 @@ import (
 	"chat/pkg/common/mctx"
 	"chat/pkg/common/rtc"
 	"chat/pkg/protocol/chat"
-	"gitee.com/matkurban/openimsdk-tools/apiresp"
-	"gitee.com/matkurban/openimsdk-tools/errs"
+	"chat/pkg/common/apiresp"
+	"chat/pkg/common/errs"
 	"github.com/gin-gonic/gin"
 )
 

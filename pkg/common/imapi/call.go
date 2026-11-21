@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"chat/pkg/common/constant"
-	"gitee.com/matkurban/openimsdk-tools/errs"
-	"gitee.com/matkurban/openimsdk-tools/log"
+	"chat/pkg/common/errs"
+	"chat/pkg/common/log"
 	constantpb "github.com/openimsdk/protocol/constant"
 	"gorm.io/gorm/utils"
 )
@@ -23,12 +23,20 @@ type baseApiResponse[T any] struct {
 	Data    *T     `json:"data"`
 }
 
+var sharedTransport = &http.Transport{
+	MaxIdleConns:        200,
+	MaxIdleConnsPerHost: 100,
+	IdleConnTimeout:     90 * time.Second,
+}
+
 var client = &http.Client{
-	Timeout: time.Second * 10,
+	Timeout:   time.Second * 10,
+	Transport: sharedTransport,
 }
 
 var longClient = &http.Client{
-	Timeout: 10 * time.Minute,
+	Timeout:   10 * time.Minute,
+	Transport: sharedTransport,
 }
 
 type ApiCaller[Req, Resp any] interface {

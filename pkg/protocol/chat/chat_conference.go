@@ -5,7 +5,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"gitee.com/matkurban/openimsdk-tools/errs"
+	"chat/pkg/common/errs"
 )
 
 const ConferenceTitleMaxRunes = 40

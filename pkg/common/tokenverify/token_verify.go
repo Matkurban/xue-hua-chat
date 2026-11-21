@@ -1,11 +1,12 @@
 package tokenverify
 
 import (
+	"errors"
 	"time"
 
 	"chat/pkg/common/constant"
-	"gitee.com/matkurban/openimsdk-tools/errs"
-	"github.com/golang-jwt/jwt/v4"
+	"chat/pkg/common/errs"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 const (
@@ -27,6 +28,9 @@ type Token struct {
 
 func (t *Token) secret() jwt.Keyfunc {
 	return func(token *jwt.Token) (any, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, errs.ErrTokenMalformed.WrapMsg("unexpected signing method")
+		}
 		return []byte(t.Secret), nil
 	}
 }
@@ -45,31 +49,32 @@ func (t *Token) buildClaims(userID string, userType int32) claims {
 }
 
 func (t *Token) getToken(str string) (string, int32, error) {
-	token, err := jwt.ParseWithClaims(str, &claims{}, t.secret())
+	token, err := jwt.ParseWithClaims(
+		str,
+		&claims{},
+		t.secret(),
+		jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Alg()}),
+	)
 	if err != nil {
-		if ve, ok := err.(*jwt.ValidationError); ok {
-			if ve.Errors&jwt.ValidationErrorMalformed != 0 {
-				return "", 0, errs.ErrTokenMalformed.Wrap()
-			} else if ve.Errors&jwt.ValidationErrorExpired != 0 {
-				return "", 0, errs.ErrTokenExpired.Wrap()
-			} else if ve.Errors&jwt.ValidationErrorNotValidYet != 0 {
-				return "", 0, errs.ErrTokenNotValidYet.Wrap()
-			} else {
-				return "", 0, errs.ErrTokenUnknown.Wrap()
-			}
-		} else {
-			return "", 0, errs.ErrTokenNotValidYet.Wrap()
-		}
-	} else {
-		claims, ok := token.Claims.(*claims)
-		if claims.PlatformID != 0 {
+		switch {
+		case errors.Is(err, jwt.ErrTokenMalformed):
+			return "", 0, errs.ErrTokenMalformed.Wrap()
+		case errors.Is(err, jwt.ErrTokenExpired):
 			return "", 0, errs.ErrTokenExpired.Wrap()
+		case errors.Is(err, jwt.ErrTokenNotValidYet):
+			return "", 0, errs.ErrTokenNotValidYet.Wrap()
+		default:
+			return "", 0, errs.ErrTokenUnknown.Wrap()
 		}
-		if ok && token.Valid {
-			return claims.UserID, claims.UserType, nil
-		}
+	}
+	c, ok := token.Claims.(*claims)
+	if !ok || c == nil || !token.Valid {
 		return "", 0, errs.ErrTokenNotValidYet.Wrap()
 	}
+	if c.PlatformID != 0 {
+		return "", 0, errs.ErrTokenExpired.Wrap()
+	}
+	return c.UserID, c.UserType, nil
 }
 
 func (t *Token) CreateToken(UserID string, userType int32) (string, time.Duration, error) {

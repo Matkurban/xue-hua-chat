@@ -10,13 +10,13 @@ import (
 	"chat/pkg/common/config"
 	"chat/pkg/common/imapi"
 
-	"gitee.com/matkurban/openimsdk-tools/db/mongoutil"
-	"gitee.com/matkurban/openimsdk-tools/db/redisutil"
-	"gitee.com/matkurban/openimsdk-tools/discovery/etcd"
-	"gitee.com/matkurban/openimsdk-tools/mcontext"
-	"gitee.com/matkurban/openimsdk-tools/system/program"
-	"gitee.com/matkurban/openimsdk-tools/utils/idutil"
-	"gitee.com/matkurban/openimsdk-tools/utils/runtimeenv"
+	"chat/pkg/common/db/mongoutil"
+	"chat/pkg/common/db/redisutil"
+	"chat/pkg/common/discovery/etcd"
+	"chat/pkg/common/mcontext"
+	"chat/pkg/common/program"
+	"chat/pkg/util/idutil"
+	"chat/pkg/util/runtimeenv"
 )
 
 const maxRetry = 180

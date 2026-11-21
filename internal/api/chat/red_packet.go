@@ -10,9 +10,9 @@ import (
 	chatdb "chat/pkg/common/db/table/chat"
 	"chat/pkg/common/imapi"
 	"chat/pkg/common/mctx"
-	"gitee.com/matkurban/openimsdk-tools/apiresp"
-	"gitee.com/matkurban/openimsdk-tools/errs"
-	"gitee.com/matkurban/openimsdk-tools/log"
+	"chat/pkg/common/apiresp"
+	"chat/pkg/common/errs"
+	"chat/pkg/common/log"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
@@ -121,13 +121,24 @@ func (o *RedPacketApi) SendRedPacket(c *gin.Context) {
 	}
 	ctx := c.Request.Context()
 
-	if req.PacketType == chatdb.RedPacketTypeSingle && req.TargetUserID == "" {
-		apiresp.GinError(c, errs.ErrArgs.WrapMsg("targetUserID required for single packet"))
-		return
+	if req.PacketType == chatdb.RedPacketTypeSingle {
+		if req.TargetUserID == "" {
+			apiresp.GinError(c, errs.ErrArgs.WrapMsg("targetUserID required for single packet"))
+			return
+		}
+		req.TotalCount = 1
 	}
 
-	// 确保金额精度不超过两位小数
+	// 确保金额精度不超过两位小数，且每人至少可分到 0.01
+	if math.IsNaN(req.TotalAmount) || math.IsInf(req.TotalAmount, 0) {
+		apiresp.GinError(c, errs.ErrArgs.WrapMsg("invalid totalAmount"))
+		return
+	}
 	req.TotalAmount = math.Round(req.TotalAmount*100) / 100
+	if req.TotalAmount < float64(req.TotalCount)*0.01 {
+		apiresp.GinError(c, errs.ErrArgs.WrapMsg("totalAmount must be at least 0.01 per packet"))
+		return
+	}
 
 	packetID := uuid.New().String()
 	now := time.Now()
@@ -264,8 +275,10 @@ func (o *RedPacketApi) GrabRedPacket(c *gin.Context) {
 	}
 
 	if err = o.db.GrabRedPacketTx(ctx, packet, grab, nil, grabberTx); err != nil {
-		// DB 失败：回滚 Redis（将金额放回）—— 简化处理：记录后台修复队列
-		_ = err
+		if rbErr := o.cache.RollbackGrab(ctx, req.PacketID, grabberID, amount); rbErr != nil {
+			log.ZError(ctx, "GrabRedPacket RollbackGrab failed", rbErr, "packetID", req.PacketID, "grabberID", grabberID, "amount", amount)
+		}
+		log.ZError(ctx, "GrabRedPacketTx failed", err, "packetID", req.PacketID, "grabberID", grabberID)
 		apiresp.GinError(c, errs.ErrInternalServer.WrapMsg("record failed, please retry"))
 		return
 	}
@@ -421,11 +434,12 @@ func (o *RedPacketApi) GetRedPacketDetail(c *gin.Context) {
 	}
 	type userBasic struct{ Nickname, FaceURL string }
 	userInfoMap := make(map[string]userBasic)
-	imToken, err := o.im.GetAdminTokenCache(ctx, o.imUserID)
+	// 注意：必须传 c（Gin Context）以保留 operationID，否则 IM server 会拒绝请求
+	imToken, err := o.im.GetAdminTokenCache(c, o.imUserID)
 	if err != nil {
 		log.ZWarn(ctx, "GetRedPacketDetail GetAdminTokenCache failed", err)
 	} else {
-		imCtx := mctx.WithApiToken(ctx, imToken)
+		imCtx := mctx.WithApiToken(c, imToken)
 		if users, err2 := o.im.GetUsersInfo(imCtx, allUserIDs); err2 == nil {
 			for _, u := range users {
 				if u != nil {

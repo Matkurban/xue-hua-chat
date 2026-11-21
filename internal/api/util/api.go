@@ -4,7 +4,7 @@ import (
 	"chat/pkg/common/mctx"
 	"context"
 	"fmt"
-	"gitee.com/matkurban/openimsdk-tools/errs"
+	"chat/pkg/common/errs"
 	"github.com/gin-gonic/gin"
 	"net"
 )

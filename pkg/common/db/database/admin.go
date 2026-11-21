@@ -7,9 +7,9 @@ import (
 	"go.mongodb.org/mongo-driver/v2/bson"
 
 	"chat/pkg/common/db/cache"
-	"gitee.com/matkurban/openimsdk-tools/db/mongoutil"
-	"gitee.com/matkurban/openimsdk-tools/db/pagination"
-	"gitee.com/matkurban/openimsdk-tools/db/tx"
+	"chat/pkg/common/db/mongoutil"
+	"chat/pkg/common/db/pagination"
+	"chat/pkg/common/db/tx"
 	"github.com/openimsdk/protocol/constant"
 	"github.com/redis/go-redis/v9"
 

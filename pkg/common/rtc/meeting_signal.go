@@ -8,7 +8,7 @@ import (
 
 	"chat/pkg/common/imapi"
 	"chat/pkg/common/mctx"
-	"gitee.com/matkurban/openimsdk-tools/log"
+	"chat/pkg/common/log"
 )
 
 const rtcSignalingBusinessID = "rtc_signaling"

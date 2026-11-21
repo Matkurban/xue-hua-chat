@@ -18,10 +18,10 @@ import (
 	"time"
 
 	"chat/pkg/common/config"
-	"gitee.com/matkurban/openimsdk-tools/discovery"
-	"gitee.com/matkurban/openimsdk-tools/discovery/etcd"
-	"gitee.com/matkurban/openimsdk-tools/discovery/kubernetes"
-	"gitee.com/matkurban/openimsdk-tools/errs"
+	"chat/pkg/common/discovery"
+	"chat/pkg/common/discovery/etcd"
+	"chat/pkg/common/discovery/kubernetes"
+	"chat/pkg/common/errs"
 )
 
 const (

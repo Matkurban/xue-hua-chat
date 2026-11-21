@@ -6,10 +6,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"chat/pkg/common/mctx"
-	"gitee.com/matkurban/openimsdk-tools/log"
+	"chat/pkg/common/log"
 	constantpb "github.com/openimsdk/protocol/constant"
 )
 
@@ -21,7 +22,7 @@ const (
 )
 
 // ctxWithOperationID ensures ctx carries a non-empty operationID for IM HTTP APIs.
-// openimsdk-tools GinParseOperationID rejects POST requests without this header.
+// mw.GinParseOperationID rejects POST requests without this header.
 func ctxWithOperationID(ctx context.Context) context.Context {
 	if ctx == nil {
 		ctx = context.Background()
@@ -197,16 +198,27 @@ func (m *ConferenceManager) broadcastSync(ctx context.Context, userIDs []string,
 		return attempted, attempted
 	}
 	apiCtx := mctx.WithApiToken(ctx, imToken)
+	const concurrency = 16
+	sem := make(chan struct{}, concurrency)
+	var wg sync.WaitGroup
+	var failedCount atomic.Int64
 	for _, uid := range userIDs {
 		if uid == "" {
 			continue
 		}
-		if err := m.im.SendBusinessNotification(apiCtx, conferenceSyncBusinessID, dataB64, m.adminUserID, uid); err != nil {
-			failed++
-			log.ZWarn(ctx, "conference_sync notify failed", err, "userID", uid, "event", payload.Event)
-		}
+		wg.Add(1)
+		sem <- struct{}{}
+		go func(uid string) {
+			defer wg.Done()
+			defer func() { <-sem }()
+			if err := m.im.SendBusinessNotification(apiCtx, conferenceSyncBusinessID, dataB64, m.adminUserID, uid); err != nil {
+				failedCount.Add(1)
+				log.ZWarn(ctx, "conference_sync notify failed", err, "userID", uid, "event", payload.Event)
+			}
+		}(uid)
 	}
-	return attempted, failed
+	wg.Wait()
+	return attempted, int(failedCount.Load())
 }
 
 func (m *ConferenceManager) sendConferenceInvites(ctx context.Context, room *ConferenceRoom, inviterUserID string, inviteeUserIDs []string) {
@@ -233,14 +245,24 @@ func (m *ConferenceManager) sendConferenceInvites(ctx context.Context, room *Con
 		return
 	}
 	apiCtx := mctx.WithApiToken(ctx, imToken)
+	const concurrency = 16
+	sem := make(chan struct{}, concurrency)
+	var wg sync.WaitGroup
 	for _, uid := range inviteeUserIDs {
 		if uid == "" || uid == inviterUserID {
 			continue
 		}
-		if err := m.im.SendBusinessNotification(apiCtx, conferenceInviteBusinessID, string(dataBytes), inviterUserID, uid); err != nil {
-			log.ZWarn(ctx, "conference_invite business notify failed", err, "userID", uid)
-		}
+		wg.Add(1)
+		sem <- struct{}{}
+		go func(uid string) {
+			defer wg.Done()
+			defer func() { <-sem }()
+			if err := m.im.SendBusinessNotification(apiCtx, conferenceInviteBusinessID, string(dataBytes), inviterUserID, uid); err != nil {
+				log.ZWarn(ctx, "conference_invite business notify failed", err, "userID", uid)
+			}
+		}(uid)
 	}
+	wg.Wait()
 }
 
 func (m *ConferenceManager) notifyConferenceStarted(ctx context.Context, room *ConferenceRoom) {

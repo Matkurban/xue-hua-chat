@@ -9,8 +9,8 @@ import (
 	"chat/pkg/common/db/database"
 	"chat/pkg/common/imapi"
 	"chat/pkg/protocol/bot"
-	"gitee.com/matkurban/openimsdk-tools/db/mongoutil"
-	"gitee.com/matkurban/openimsdk-tools/discovery"
+	"chat/pkg/common/db/mongoutil"
+	"chat/pkg/common/discovery"
 	"google.golang.org/grpc"
 )
 

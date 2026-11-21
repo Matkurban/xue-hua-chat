@@ -4,7 +4,7 @@ package statsday
 import (
 	"time"
 
-	"gitee.com/matkurban/openimsdk-tools/errs"
+	"chat/pkg/common/errs"
 )
 
 // Location is Asia/Shanghai (fixed +08:00, no DST, no tzdata dependency). It must match the

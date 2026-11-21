@@ -2,18 +2,19 @@ package chat
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/subtle"
 	"fmt"
-	"math/rand"
 	"strconv"
 	"strings"
 	"time"
 
-	"gitee.com/matkurban/openimsdk-tools/utils/datautil"
+	"chat/pkg/util/datautil"
 	constantpb "github.com/openimsdk/protocol/constant"
 
-	"gitee.com/matkurban/openimsdk-tools/errs"
-	"gitee.com/matkurban/openimsdk-tools/log"
-	"gitee.com/matkurban/openimsdk-tools/mcontext"
+	"chat/pkg/common/errs"
+	"chat/pkg/common/log"
+	"chat/pkg/common/mcontext"
 
 	"chat/pkg/common/constant"
 	"chat/pkg/common/db/dbutil"
@@ -134,7 +135,7 @@ func (o *chatSvr) SendVerifyCode(ctx context.Context, req *chat.SendVerifyCodeRe
 	if err != nil {
 		return nil, err
 	}
-	if o.Code.MaxCount < int(count) {
+	if o.Code.MaxCount > 0 && int(count) >= o.Code.MaxCount {
 		return nil, eerrs.ErrVerifyCodeSendFrequently.Wrap()
 	}
 	platformName := constantpb.PlatformIDToName(int(req.Platform))
@@ -235,7 +236,7 @@ func (o *chatSvr) VerifyCode(ctx context.Context, req *chat.VerifyCodeReq) (*cha
 func (o *chatSvr) genUserID() string {
 	const l = 10
 	data := make([]byte, l)
-	rand.Read(data)
+	_, _ = rand.Read(data)
 	chars := []byte("0123456789")
 	for i := 0; i < len(data); i++ {
 		if i == 0 {
@@ -249,7 +250,7 @@ func (o *chatSvr) genUserID() string {
 
 func (o *chatSvr) genVerifyCode() string {
 	data := make([]byte, o.Code.Len)
-	rand.Read(data)
+	_, _ = rand.Read(data)
 	chars := []byte("0123456789")
 	for i := 0; i < len(data); i++ {
 		data[i] = chars[data[i]%10]
@@ -266,7 +267,10 @@ func (o *chatSvr) RegisterUser(ctx context.Context, req *chat.RegisterUserReq) (
 	if err = o.checkRegisterInfo(ctx, req.User, isAdmin); err != nil {
 		return nil, err
 	}
-	var usedInvitationCode bool
+	var (
+		usedInvitationCode bool
+		verifyCodeID       string
+	)
 	if !isAdmin {
 		if !o.AllowRegister {
 			return nil, errs.ErrNoPermission.WrapMsg("register user is disabled")
@@ -291,11 +295,13 @@ func (o *chatSvr) RegisterUser(ctx context.Context, req *chat.RegisterUserReq) (
 			}
 		}
 		if req.User.Email == "" {
-			if _, err := o.verifyCode(ctx, o.verifyCodeJoin(req.User.AreaCode, req.User.PhoneNumber), req.VerifyCode, phone); err != nil {
+			verifyCodeID, err = o.verifyCode(ctx, o.verifyCodeJoin(req.User.AreaCode, req.User.PhoneNumber), req.VerifyCode, phone)
+			if err != nil {
 				return nil, err
 			}
 		} else {
-			if _, err := o.verifyCode(ctx, req.User.Email, req.VerifyCode, mail); err != nil {
+			verifyCodeID, err = o.verifyCode(ctx, req.User.Email, req.VerifyCode, mail)
+			if err != nil {
 				return nil, err
 			}
 		}
@@ -395,6 +401,11 @@ func (o *chatSvr) RegisterUser(ctx context.Context, req *chat.RegisterUserReq) (
 	if err := o.Database.RegisterUser(ctx, register, account, attribute, credentials); err != nil {
 		return nil, err
 	}
+	if verifyCodeID != "" {
+		if err := o.Database.DelVerifyCode(ctx, verifyCodeID); err != nil {
+			log.ZWarn(ctx, "DelVerifyCode after register failed", err, "verifyCodeID", verifyCodeID)
+		}
+	}
 	if usedInvitationCode {
 		if err := o.Admin.UseInvitationCode(ctx, req.User.UserID, req.InvitationCode); err != nil {
 			log.ZError(ctx, "UseInvitationCode", err, "userID", req.User.UserID, "invitationCode", req.InvitationCode)
@@ -491,7 +502,7 @@ func (o *chatSvr) Login(ctx context.Context, req *chat.LoginReq) (*chat.LoginRes
 		if err != nil {
 			return nil, err
 		}
-		if account.Password != req.Password {
+		if subtle.ConstantTimeCompare([]byte(account.Password), []byte(req.Password)) != 1 {
 			return nil, eerrs.ErrPassword.Wrap()
 		}
 	}

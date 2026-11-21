@@ -24,6 +24,7 @@ const (
 // KEYS[1]: amounts list key
 // KEYS[2]: grabbed set key
 // ARGV[1]: grabberID
+// ARGV[2]: grabbed set TTL in seconds
 // 返回: 领取金额(>0) | 0=已领过 | -1=已抢完
 const grabLuaScript = `
 local already = redis.call('SISMEMBER', KEYS[2], ARGV[1])
@@ -31,19 +32,37 @@ if already == 1 then return 0 end
 local amount = redis.call('LPOP', KEYS[1])
 if not amount then return -1 end
 redis.call('SADD', KEYS[2], ARGV[1])
+redis.call('EXPIRE', KEYS[2], tonumber(ARGV[2]))
 return tonumber(amount)
+`
+
+// rollbackGrabLuaScript DB 落库失败时回滚 Redis 抢红包状态
+// KEYS[1]: amounts list key
+// KEYS[2]: grabbed set key
+// ARGV[1]: grabberID
+// ARGV[2]: scaled amount
+// ARGV[3]: TTL in seconds
+const rollbackGrabLuaScript = `
+local removed = redis.call('SREM', KEYS[2], ARGV[1])
+if removed == 1 then
+    redis.call('LPUSH', KEYS[1], ARGV[2])
+    redis.call('EXPIRE', KEYS[1], tonumber(ARGV[3]))
+end
+return removed
 `
 
 // RedPacketCache 红包 Redis 缓存操作
 type RedPacketCache struct {
-	rdb    redis.UniversalClient
-	script *redis.Script
+	rdb            redis.UniversalClient
+	script         *redis.Script
+	rollbackScript *redis.Script
 }
 
 func NewRedPacketCache(rdb redis.UniversalClient) *RedPacketCache {
 	return &RedPacketCache{
-		rdb:    rdb,
-		script: redis.NewScript(grabLuaScript),
+		rdb:            rdb,
+		script:         redis.NewScript(grabLuaScript),
+		rollbackScript: redis.NewScript(rollbackGrabLuaScript),
 	}
 }
 
@@ -52,17 +71,14 @@ func NewRedPacketCache(rdb redis.UniversalClient) *RedPacketCache {
 func (c *RedPacketCache) InitPacket(ctx context.Context, packetID string, totalAmount float64, count int32, luckDraw bool) error {
 	amounts := splitAmounts(totalAmount, count, luckDraw)
 	amountsKey := fmt.Sprintf(redPacketAmountsKey, packetID)
-	grabbedKey := fmt.Sprintf(redPacketGrabbedKey, packetID)
 
 	pipe := c.rdb.Pipeline()
-	// 将金额列表推入 Redis List（以整数存储）
 	args := make([]interface{}, len(amounts))
 	for i, a := range amounts {
 		args[i] = int64(math.Round(a * pointsScale))
 	}
 	pipe.RPush(ctx, amountsKey, args...)
 	pipe.Expire(ctx, amountsKey, redPacketTTL)
-	pipe.Expire(ctx, grabbedKey, redPacketTTL)
 	_, err := pipe.Exec(ctx)
 	return err
 }
@@ -72,7 +88,7 @@ func (c *RedPacketCache) GrabPacket(ctx context.Context, packetID string, grabbe
 	amountsKey := fmt.Sprintf(redPacketAmountsKey, packetID)
 	grabbedKey := fmt.Sprintf(redPacketGrabbedKey, packetID)
 
-	scaled, err := c.script.Run(ctx, c.rdb, []string{amountsKey, grabbedKey}, grabberID).Int64()
+	scaled, err := c.script.Run(ctx, c.rdb, []string{amountsKey, grabbedKey}, grabberID, int64(redPacketTTL/time.Second)).Int64()
 	if err != nil {
 		return 0, err
 	}
@@ -82,8 +98,15 @@ func (c *RedPacketCache) GrabPacket(ctx context.Context, packetID string, grabbe
 	if scaled == -1 {
 		return -1, nil // 已抓完
 	}
-	// scaled 已经是乘以 100 的整数，除以 100 即可还原到两位小数
 	return float64(scaled) / pointsScale, nil
+}
+
+// RollbackGrab 在数据库事务失败时原子回滚 Redis 抢红包状态，防止金额凭空丢失
+func (c *RedPacketCache) RollbackGrab(ctx context.Context, packetID string, grabberID string, amount float64) error {
+	amountsKey := fmt.Sprintf(redPacketAmountsKey, packetID)
+	grabbedKey := fmt.Sprintf(redPacketGrabbedKey, packetID)
+	scaled := int64(math.Round(amount * pointsScale))
+	return c.rollbackScript.Run(ctx, c.rdb, []string{amountsKey, grabbedKey}, grabberID, scaled, int64(redPacketTTL/time.Second)).Err()
 }
 
 // RemainingCount 查询 Redis List 剩余份数（用于状态校验）
@@ -99,44 +122,59 @@ func (c *RedPacketCache) DeletePacket(ctx context.Context, packetID string) {
 	)
 }
 
-// splitAmounts 拼手气随机分割；均等时等额分割
-// 拼手气算法：二倍均值法，保证每份 >= 0.01，且随机性好
-// 返回的金额保留 2 位小数。
+// splitAmounts 使用整数分（×100）精确分割红包金额，保证：
+// 1. 每份 >= 0.01（1 分），绝不出现 0 或负数；
+// 2. 所有份之和严格等于 total（无浮点累积误差）。
 func splitAmounts(total float64, count int32, luckDraw bool) []float64 {
-	const minAmount = 0.01
-	amounts := make([]float64, count)
+	if count <= 0 {
+		return nil
+	}
+	totalCents := int64(math.Round(total * pointsScale))
+	n := int64(count)
+	cents := make([]int64, n)
+
 	if !luckDraw {
-		base := math.Round(total/float64(count)*100) / 100
-		for i := int32(0); i < count-1; i++ {
-			amounts[i] = base
+		base := totalCents / n
+		rem := totalCents % n
+		for i := int64(0); i < n; i++ {
+			cents[i] = base
+			if i < rem {
+				cents[i]++
+			}
 		}
-		// 最后一份 = 总金额 - 前 n-1 份之和，避免浮点累积误差
-		var sum float64
-		for i := int32(0); i < count-1; i++ {
-			sum += amounts[i]
+	} else {
+		rng := rand.New(rand.NewSource(time.Now().UnixNano()))
+		remaining := totalCents
+		for i := int64(0); i < n-1; i++ {
+			leftCount := n - i
+			// 每份至少 1 分，同时保证剩余 (leftCount-1) 份每人至少 1 分
+			hardMax := remaining - (leftCount - 1)
+			doubleAvg := (2 * remaining) / leftCount
+			maxCents := doubleAvg
+			if maxCents > hardMax {
+				maxCents = hardMax
+			}
+			if maxCents < 1 {
+				maxCents = 1
+			}
+			var pick int64
+			if maxCents == 1 {
+				pick = 1
+			} else {
+				pick = 1 + rng.Int63n(maxCents)
+			}
+			cents[i] = pick
+			remaining -= pick
 		}
-		amounts[count-1] = math.Round((total-sum)*100) / 100
-		return amounts
+		cents[n-1] = remaining
+		rng.Shuffle(int(n), func(i, j int) {
+			cents[i], cents[j] = cents[j], cents[i]
+		})
 	}
 
-	// 拼手气：二倍均值法
-	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
-	remaining := total
-	for i := int32(0); i < count-1; i++ {
-		leftCount := float64(count - i)
-		// 每份最大值 = 2*remaining/leftCount，确保剩余份至少能分到 minAmount
-		maxAmount := 2*remaining/leftCount - minAmount*(leftCount-1)/leftCount
-		if maxAmount < minAmount {
-			maxAmount = minAmount
-		}
-		amount := math.Round((minAmount+rng.Float64()*(maxAmount-minAmount))*100) / 100
-		amounts[i] = amount
-		remaining = math.Round((remaining-amount)*100) / 100
+	amounts := make([]float64, n)
+	for i, c := range cents {
+		amounts[i] = float64(c) / pointsScale
 	}
-	amounts[count-1] = math.Round(remaining*100) / 100
-	// 打乱顺序增加随机感
-	rng.Shuffle(int(count), func(i, j int) {
-		amounts[i], amounts[j] = amounts[j], amounts[i]
-	})
 	return amounts
 }

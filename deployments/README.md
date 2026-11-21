@@ -6,7 +6,7 @@
   - Redis
   - MongoDB
   - Kafka
-  - MinIO
+  - RustFS
 - Expose the corresponding Services and ports of IM Server (xue-hua-server).
 
 ## Deploy Chat

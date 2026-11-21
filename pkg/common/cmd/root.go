@@ -23,12 +23,12 @@ import (
 	"chat/pkg/common/kdisc"
 	disetcd "chat/pkg/common/kdisc/etcd"
 	"chat/version"
-	"gitee.com/matkurban/openimsdk-tools/discovery/etcd"
+	"chat/pkg/common/discovery/etcd"
 	clientv3 "go.etcd.io/etcd/client/v3"
 
-	"gitee.com/matkurban/openimsdk-tools/errs"
-	"gitee.com/matkurban/openimsdk-tools/log"
-	"gitee.com/matkurban/openimsdk-tools/utils/runtimeenv"
+	"chat/pkg/common/errs"
+	"chat/pkg/common/log"
+	"chat/pkg/util/runtimeenv"
 
 	"github.com/spf13/cobra"
 )

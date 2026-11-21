@@ -3,8 +3,8 @@ package config
 import (
 	_ "embed"
 
-	"gitee.com/matkurban/openimsdk-tools/db/mongoutil"
-	"gitee.com/matkurban/openimsdk-tools/db/redisutil"
+	"chat/pkg/common/db/mongoutil"
+	"chat/pkg/common/db/redisutil"
 )
 
 var (
