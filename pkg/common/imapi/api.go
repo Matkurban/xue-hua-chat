@@ -39,12 +39,14 @@ var (
 	getGroupMembersInfo      = NewApiCaller[group.GetGroupMembersInfoReq, group.GetGroupMembersInfoResp]("/group/get_group_members_info")
 
 	createMoment  = NewApiCaller[CreateMomentReq, CreateMomentResp]("/moment/create")
-	deleteMoment  = NewApiCaller[DeleteMomentReq, struct{}]("/moment/delete")
+	deleteMoment  = NewApiCaller[DeleteMomentReq, MomentMutationResp]("/moment/delete")
 	listMoments   = NewApiCaller[ListMomentsReq, ListMomentsResp]("/moment/list")
+	listTimeline  = NewApiCaller[ListTimelineReq, ListTimelineResp]("/moment/timeline")
+	syncMoments   = NewApiCaller[SyncMomentsReq, SyncMomentsResp]("/moment/sync")
 	commentMoment = NewApiCaller[CommentMomentReq, CommentMomentResp]("/moment/comment")
-	deleteComment = NewApiCaller[DeleteCommentReq, struct{}]("/moment/delete_comment")
-	likeMoment    = NewApiCaller[LikeMomentReq, struct{}]("/moment/like")
-	unlikeMoment  = NewApiCaller[UnlikeMomentReq, struct{}]("/moment/unlike")
+	deleteComment = NewApiCaller[DeleteCommentReq, DeleteCommentResp]("/moment/delete_comment")
+	likeMoment    = NewApiCaller[LikeMomentReq, MomentMutationResp]("/moment/like")
+	unlikeMoment  = NewApiCaller[UnlikeMomentReq, MomentMutationResp]("/moment/unlike")
 
 	adminListMoments   = NewApiCaller[AdminListMomentsReq, AdminListMomentsResp]("/moment/admin/list")
 	adminGetMoment     = NewApiCaller[AdminMomentIDReq, AdminMomentDetailResp]("/moment/admin/detail")

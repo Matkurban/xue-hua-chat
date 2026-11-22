@@ -50,12 +50,14 @@ type CallerInterface interface {
 	GetGroupMembersInfo(ctx context.Context, groupID string, userIDs []string) ([]*sdkws.GroupMemberFullInfo, error)
 
 	CreateMoment(ctx context.Context, req *CreateMomentReq) (*CreateMomentResp, error)
-	DeleteMoment(ctx context.Context, req *DeleteMomentReq) error
+	DeleteMoment(ctx context.Context, req *DeleteMomentReq) (*MomentMutationResp, error)
 	ListMoments(ctx context.Context, req *ListMomentsReq) (*ListMomentsResp, error)
+	ListTimeline(ctx context.Context, req *ListTimelineReq) (*ListTimelineResp, error)
+	SyncMoments(ctx context.Context, req *SyncMomentsReq) (*SyncMomentsResp, error)
 	CommentMoment(ctx context.Context, req *CommentMomentReq) (*CommentMomentResp, error)
-	DeleteComment(ctx context.Context, req *DeleteCommentReq) error
-	LikeMoment(ctx context.Context, req *LikeMomentReq) error
-	UnlikeMoment(ctx context.Context, req *UnlikeMomentReq) error
+	DeleteComment(ctx context.Context, req *DeleteCommentReq) (*DeleteCommentResp, error)
+	LikeMoment(ctx context.Context, req *LikeMomentReq) (*MomentMutationResp, error)
+	UnlikeMoment(ctx context.Context, req *UnlikeMomentReq) (*MomentMutationResp, error)
 
 	AdminListMoments(ctx context.Context, req *AdminListMomentsReq) (*AdminListMomentsResp, error)
 	AdminGetMoment(ctx context.Context, req *AdminMomentIDReq) (*AdminMomentDetailResp, error)
@@ -391,32 +393,36 @@ func (c *Caller) CreateMoment(ctx context.Context, req *CreateMomentReq) (*Creat
 	return createMoment.Call(ctx, c.imApi, req)
 }
 
-func (c *Caller) DeleteMoment(ctx context.Context, req *DeleteMomentReq) error {
-	_, err := deleteMoment.Call(ctx, c.imApi, req)
-	return err
+func (c *Caller) DeleteMoment(ctx context.Context, req *DeleteMomentReq) (*MomentMutationResp, error) {
+	return deleteMoment.Call(ctx, c.imApi, req)
 }
 
 func (c *Caller) ListMoments(ctx context.Context, req *ListMomentsReq) (*ListMomentsResp, error) {
 	return listMoments.Call(ctx, c.imApi, req)
 }
 
+func (c *Caller) ListTimeline(ctx context.Context, req *ListTimelineReq) (*ListTimelineResp, error) {
+	return listTimeline.Call(ctx, c.imApi, req)
+}
+
+func (c *Caller) SyncMoments(ctx context.Context, req *SyncMomentsReq) (*SyncMomentsResp, error) {
+	return syncMoments.Call(ctx, c.imApi, req)
+}
+
 func (c *Caller) CommentMoment(ctx context.Context, req *CommentMomentReq) (*CommentMomentResp, error) {
 	return commentMoment.Call(ctx, c.imApi, req)
 }
 
-func (c *Caller) DeleteComment(ctx context.Context, req *DeleteCommentReq) error {
-	_, err := deleteComment.Call(ctx, c.imApi, req)
-	return err
+func (c *Caller) DeleteComment(ctx context.Context, req *DeleteCommentReq) (*DeleteCommentResp, error) {
+	return deleteComment.Call(ctx, c.imApi, req)
 }
 
-func (c *Caller) LikeMoment(ctx context.Context, req *LikeMomentReq) error {
-	_, err := likeMoment.Call(ctx, c.imApi, req)
-	return err
+func (c *Caller) LikeMoment(ctx context.Context, req *LikeMomentReq) (*MomentMutationResp, error) {
+	return likeMoment.Call(ctx, c.imApi, req)
 }
 
-func (c *Caller) UnlikeMoment(ctx context.Context, req *UnlikeMomentReq) error {
-	_, err := unlikeMoment.Call(ctx, c.imApi, req)
-	return err
+func (c *Caller) UnlikeMoment(ctx context.Context, req *UnlikeMomentReq) (*MomentMutationResp, error) {
+	return unlikeMoment.Call(ctx, c.imApi, req)
 }
 
 func (c *Caller) CreateFriendTag(ctx context.Context, req *CreateFriendTagReq) (*CreateFriendTagResp, error) {

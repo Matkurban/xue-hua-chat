@@ -368,6 +368,8 @@ func SetChatRoute(router gin.IRouter, chat *Api, mw *chatmw.MW) {
 	moment.POST("/create", chat.CreateMoment)
 	moment.POST("/delete", chat.DeleteMoment)
 	moment.POST("/list", chat.ListMoments)
+	moment.POST("/timeline", chat.ListTimeline)
+	moment.POST("/sync", chat.SyncMoments)
 	moment.POST("/comment", chat.CommentMoment)
 	moment.POST("/delete_comment", chat.DeleteComment)
 	moment.POST("/like", chat.LikeMoment)

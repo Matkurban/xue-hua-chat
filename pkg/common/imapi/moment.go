@@ -35,6 +35,8 @@ type Moment struct {
 	CommentCount    int64             `json:"commentCount"`
 	VisibleType     int32             `json:"visibleType"`
 	Status          int32             `json:"status"`
+	TimelineSeq     int64             `json:"timelineSeq"`
+	UpdateSeq       int64             `json:"updateSeq"`
 }
 
 type MomentComment struct {
@@ -94,7 +96,15 @@ type CreateMomentReq struct {
 }
 
 type CreateMomentResp struct {
-	Moment *MomentWithInteractions `json:"moment"`
+	Moment         *MomentWithInteractions `json:"moment"`
+	SyncSeq        int64                   `json:"syncSeq,omitempty"`
+	VisibleUserIDs []string                `json:"visibleUserIDs,omitempty"`
+}
+
+type MomentMutationResp struct {
+	SyncSeq        int64               `json:"syncSeq,omitempty"`
+	VisibleUserIDs []string            `json:"visibleUserIDs,omitempty"`
+	Like           *MomentLikeWithUser `json:"like,omitempty"`
 }
 
 type DeleteMomentReq struct {
@@ -113,6 +123,34 @@ type ListMomentsResp struct {
 	Moments []*MomentWithInteractions `json:"moments"`
 }
 
+type ListTimelineReq struct {
+	UserID      string `json:"userID"`
+	OwnerUserID string `json:"ownerUserID"`
+	BeforeSeq   int64  `json:"beforeSeq"`
+	Limit       int64  `json:"limit"`
+}
+
+type ListTimelineResp struct {
+	Moments       []*MomentWithInteractions `json:"moments"`
+	NextBeforeSeq int64                     `json:"nextBeforeSeq"`
+	HasMore       bool                      `json:"hasMore"`
+	LatestSyncSeq int64                     `json:"latestSyncSeq"`
+}
+
+type SyncMomentsReq struct {
+	UserID      string `json:"userID"`
+	LastSyncSeq int64  `json:"lastSyncSeq"`
+	Limit       int64  `json:"limit"`
+}
+
+type SyncMomentsResp struct {
+	LatestSyncSeq    int64                     `json:"latestSyncSeq"`
+	NeedFullRefresh  bool                      `json:"needFullRefresh"`
+	HasMore          bool                      `json:"hasMore"`
+	Upserts          []*MomentWithInteractions `json:"upserts"`
+	DeletedMomentIDs []string                  `json:"deletedMomentIDs"`
+}
+
 type CommentMomentReq struct {
 	UserID        string `json:"userID"`
 	MomentID      string `json:"momentID"`
@@ -122,12 +160,20 @@ type CommentMomentReq struct {
 }
 
 type CommentMomentResp struct {
-	Comment *MomentComment `json:"comment"`
+	Comment        *MomentCommentWithUser `json:"comment"`
+	SyncSeq        int64                  `json:"syncSeq,omitempty"`
+	VisibleUserIDs []string               `json:"visibleUserIDs,omitempty"`
 }
 
 type DeleteCommentReq struct {
 	UserID    string `json:"userID"`
 	CommentID string `json:"commentID"`
+}
+
+type DeleteCommentResp struct {
+	MomentID       string   `json:"momentID,omitempty"`
+	SyncSeq        int64    `json:"syncSeq,omitempty"`
+	VisibleUserIDs []string `json:"visibleUserIDs,omitempty"`
 }
 
 type LikeMomentReq struct {
